@@ -31,7 +31,7 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
 }
 
 function hslToHex(h: number, s: number, l: number): string {
-  const hn = ((h % 360) + 360) % 360 / 360;
+  const hn = (((h % 360) + 360) % 360) / 360;
   const sn = Math.max(0, Math.min(100, s)) / 100;
   const ln = Math.max(0, Math.min(100, l)) / 100;
   let r: number;
@@ -99,51 +99,55 @@ function defineColor(slug: string, name: string, base: string): BeadColor {
 }
 
 export const COLORS: BeadColor[] = [
+  // 红粉 (8): 从浅粉到深酒红
+  defineColor("blush", "腮红粉", "#ffd9e0"),
+  defineColor("sakura", "樱花粉", "#ffb3c6"),
+  defineColor("coral", "珊瑚粉", "#ff8fa3"),
+  defineColor("rose", "玫瑰", "#ff5d8f"),
+  defineColor("hotpink", "热粉", "#ff2d7a"),
+  defineColor("crimson", "绯红", "#e0144d"),
   defineColor("cherry", "樱桃红", "#c8102e"),
-  defineColor("red", "正红", "#d9261a"),
-  defineColor("rose", "玫瑰红", "#d63071"),
-  defineColor("rust", "铁锈红", "#9b1f1f"),
+  defineColor("wine", "酒红", "#7a1c2f"),
 
-  defineColor("pink", "粉色", "#ff8db1"),
-  defineColor("hotpink", "热粉", "#ff2d8c"),
-  defineColor("magenta", "紫红", "#bd1d78"),
-  defineColor("plum", "梅红", "#7c2b5c"),
+  // 橙黄 (8): 从奶黄到锈橙
+  defineColor("cream", "奶油", "#fff1c2"),
+  defineColor("butter", "黄油", "#ffe082"),
+  defineColor("lemon", "柠檬", "#ffd60a"),
+  defineColor("honey", "蜂蜜", "#f6a800"),
+  defineColor("amber", "琥珀", "#ed7e00"),
+  defineColor("tangerine", "橘红", "#ff6b1c"),
+  defineColor("pumpkin", "南瓜", "#d84315"),
+  defineColor("terracotta", "陶土", "#a8391a"),
 
-  defineColor("orange", "橙色", "#ff7b1c"),
-  defineColor("pumpkin", "南瓜橙", "#e85d04"),
-  defineColor("peach", "桃色", "#ffc4a3"),
-  defineColor("sand", "沙色", "#e8c39e"),
+  // 绿青 (8): 从薄荷到深松
+  defineColor("mintcream", "薄荷霜", "#d4f5e0"),
+  defineColor("mint", "薄荷", "#9be3b8"),
+  defineColor("pistachio", "开心果", "#7ed9a3"),
+  defineColor("lime", "青柠", "#a3e635"),
+  defineColor("emerald", "翡翠", "#10b981"),
+  defineColor("forest", "森林", "#0d7a4f"),
+  defineColor("teal", "青绿", "#0f9b8e"),
+  defineColor("pine", "深松", "#0a4f3f"),
 
-  defineColor("yellow", "黄色", "#ffd60a"),
-  defineColor("gold", "金黄", "#f6a800"),
-  defineColor("cream", "奶油色", "#fdf2cf"),
-  defineColor("lemon", "柠檬", "#ffec70"),
+  // 蓝紫 (8): 从天空到深紫
+  defineColor("skycream", "天空霜", "#d9efff"),
+  defineColor("sky", "天空", "#8ecaff"),
+  defineColor("azure", "蔚蓝", "#3da9fc"),
+  defineColor("cobalt", "钴蓝", "#1c6dd0"),
+  defineColor("sapphire", "宝蓝", "#0c2d8a"),
+  defineColor("lavender", "薰衣草", "#c8b6ff"),
+  defineColor("violet", "紫罗兰", "#8b5cf6"),
+  defineColor("indigo", "靛青", "#3a1f8a"),
 
-  defineColor("lightgreen", "浅绿", "#7ad980"),
-  defineColor("green", "翠绿", "#2d9e3b"),
-  defineColor("darkgreen", "深绿", "#0d5c2c"),
-  defineColor("mint", "薄荷", "#a8e6cf"),
-  defineColor("lime", "酸橙", "#c6ec2c"),
-  defineColor("teal", "青绿", "#17a398"),
-
-  defineColor("lightblue", "浅蓝", "#7fd4f1"),
-  defineColor("skyblue", "天蓝", "#3da9fc"),
-  defineColor("blue", "蓝色", "#1c6dd0"),
-  defineColor("darkblue", "深蓝", "#0c2d6b"),
-
-  defineColor("lavender", "薰衣草", "#bda8e3"),
-  defineColor("purple", "紫色", "#6a3eaa"),
-  defineColor("darkpurple", "深紫", "#3a1f70"),
-
-  defineColor("white", "白色", "#fdfaf2"),
-  defineColor("beige", "米色", "#e8dab2"),
-  defineColor("lightgray", "浅灰", "#c4c4c4"),
-  defineColor("gray", "灰色", "#7d7d7d"),
-  defineColor("darkgray", "深灰", "#404040"),
-  defineColor("brown", "棕色", "#7c4a1e"),
-  defineColor("lightbrown", "浅棕", "#a36c3a"),
-  defineColor("darkbrown", "深棕", "#3a2210"),
-  defineColor("black", "黑色", "#1a1a1a"),
+  // 中性 (8): 从象牙到炭黑
+  defineColor("ivory", "象牙", "#faf6ec"),
+  defineColor("sand", "沙色", "#e8d5a8"),
+  defineColor("taupe", "灰褐", "#b8a888"),
+  defineColor("stone", "石灰", "#8a8a85"),
+  defineColor("graphite", "石墨", "#4a4a48"),
+  defineColor("espresso", "咖啡", "#3a2a20"),
+  defineColor("chocolate", "巧克力", "#241814"),
+  defineColor("onyx", "玛瑙黑", "#0e0e10"),
 ];
 
 export interface ColorGroup {
@@ -152,11 +156,11 @@ export interface ColorGroup {
 }
 
 export const COLOR_GROUPS: ColorGroup[] = [
-  { name: "红粉", slugs: ["cherry", "red", "rose", "rust", "pink", "hotpink", "magenta", "plum"] },
-  { name: "橙黄", slugs: ["orange", "pumpkin", "peach", "sand", "yellow", "gold", "cream", "lemon"] },
-  { name: "绿青", slugs: ["lightgreen", "green", "darkgreen", "mint", "lime", "teal"] },
-  { name: "蓝紫", slugs: ["lightblue", "skyblue", "blue", "darkblue", "lavender", "purple", "darkpurple"] },
-  { name: "中性", slugs: ["white", "beige", "lightgray", "gray", "darkgray", "brown", "lightbrown", "darkbrown", "black"] },
+  { name: "红粉", slugs: ["blush", "sakura", "coral", "rose", "hotpink", "crimson", "cherry", "wine"] },
+  { name: "橙黄", slugs: ["cream", "butter", "lemon", "honey", "amber", "tangerine", "pumpkin", "terracotta"] },
+  { name: "绿青", slugs: ["mintcream", "mint", "pistachio", "lime", "emerald", "forest", "teal", "pine"] },
+  { name: "蓝紫", slugs: ["skycream", "sky", "azure", "cobalt", "sapphire", "lavender", "violet", "indigo"] },
+  { name: "中性", slugs: ["ivory", "sand", "taupe", "stone", "graphite", "espresso", "chocolate", "onyx"] },
 ];
 
 export const COLOR_MAP: Record<string, BeadColor> = Object.fromEntries(

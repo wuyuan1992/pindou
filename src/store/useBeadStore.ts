@@ -26,6 +26,9 @@ interface BeadState {
   loadTemplate: (tpl: Template) => void;
   clear: () => void;
   undo: () => void;
+
+  placeBead: (idx: number, colorId: string) => boolean;
+  removeBead: (idx: number) => boolean;
 }
 
 function pushHistory(history: Cell[][], snapshot: Cell[]): Cell[][] {
@@ -105,5 +108,25 @@ export const useBeadStore = create<BeadState>()((set, get) => ({
     if (history.length === 0) return;
     const prev = history[history.length - 1];
     set({ grid: prev.slice(), history: history.slice(0, -1) });
+  },
+
+  placeBead: (idx, colorId) => {
+    const { grid, cols, rows, history } = get();
+    if (idx < 0 || idx >= cols * rows) return false;
+    if (grid[idx] === colorId) return false;
+    const newGrid = grid.slice();
+    newGrid[idx] = colorId;
+    set({ grid: newGrid, history: pushHistory(history, grid.slice()) });
+    return true;
+  },
+
+  removeBead: (idx) => {
+    const { grid, cols, rows, history } = get();
+    if (idx < 0 || idx >= cols * rows) return false;
+    if (grid[idx] === null) return false;
+    const newGrid = grid.slice();
+    newGrid[idx] = null;
+    set({ grid: newGrid, history: pushHistory(history, grid.slice()) });
+    return true;
   },
 }));

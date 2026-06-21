@@ -1,11 +1,14 @@
-import { type CSSProperties } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect, type CSSProperties } from "react";
+import { LayoutGrid, Plus, Trash2 } from "lucide-react";
 import { useTemplatesStore } from "../store/useTemplatesStore.ts";
 import { useBeadStore } from "../store/useBeadStore.ts";
 import { COLOR_MAP } from "../data/colors.ts";
 import type { Template } from "../types.ts";
 
 export function TemplateGallery() {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const loadTemplate = useBeadStore((s) => s.loadTemplate);
   const grid = useBeadStore((s) => s.grid);
   const cols = useBeadStore((s) => s.cols);
@@ -14,6 +17,24 @@ export function TemplateGallery() {
   const custom = useTemplatesStore((s) => s.custom);
   const saveCustom = useTemplatesStore((s) => s.saveCustom);
   const removeCustom = useTemplatesStore((s) => s.removeCustom);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
 
   const handleSave = () => {
     const isEmpty = grid.every((c) => c === null);
@@ -32,50 +53,75 @@ export function TemplateGallery() {
 
   return (
     <div
+      ref={containerRef}
       data-ui
-      className="bg-white/80 backdrop-blur rounded-xl p-4 shadow-sm border border-amber-100"
+      className="relative bg-white/80 backdrop-blur rounded-xl p-1.5 shadow-sm border border-amber-100"
     >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
-          模板
-        </h3>
-        <button
-          onClick={handleSave}
-          className="text-xs flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors font-medium"
-        >
-          <Plus size={12} strokeWidth={3} />
-          保存当前
-        </button>
-      </div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="模板"
+        aria-expanded={open}
+        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
+          open
+            ? "bg-amber-500 text-white shadow-md scale-105"
+            : "text-stone-600 hover:bg-amber-100"
+        }`}
+      >
+        <LayoutGrid size={18} strokeWidth={2.2} />
+      </button>
 
-      {custom.length > 0 && (
-        <div className="mb-4">
-          <div className="text-[10px] text-stone-400 mb-1.5 font-medium">
-            我的模板
+      {open && (
+        <div
+          data-ui
+          className="absolute z-50 mt-2 w-[360px] right-0 bg-white/95 backdrop-blur rounded-xl p-4 shadow-xl border border-amber-100 max-h-[70vh] overflow-y-auto"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
+              模板
+            </h3>
+            <button
+              onClick={handleSave}
+              className="text-xs flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors font-medium"
+            >
+              <Plus size={12} strokeWidth={3} />
+              保存当前
+            </button>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {custom.map((tpl) => (
-              <TemplateCard
-                key={tpl.id}
-                tpl={tpl}
-                onClick={() => loadTemplate(tpl)}
-                onRemove={() => handleRemove(tpl.id)}
-              />
-            ))}
+
+          {custom.length > 0 && (
+            <div className="mb-4">
+              <div className="text-[10px] text-stone-400 mb-1.5 font-medium">
+                我的模板
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {custom.map((tpl) => (
+                  <TemplateCard
+                    key={tpl.id}
+                    tpl={tpl}
+                    onClick={() => loadTemplate(tpl)}
+                    onRemove={() => handleRemove(tpl.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="text-[10px] text-stone-400 mb-1.5 font-medium">
+              内置模板
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {builtin.map((tpl) => (
+                <TemplateCard
+                  key={tpl.id}
+                  tpl={tpl}
+                  onClick={() => loadTemplate(tpl)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
-
-      <div>
-        <div className="text-[10px] text-stone-400 mb-1.5 font-medium">
-          内置模板
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {builtin.map((tpl) => (
-            <TemplateCard key={tpl.id} tpl={tpl} onClick={() => loadTemplate(tpl)} />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -89,7 +135,7 @@ function TemplateCard({
   onClick: () => void;
   onRemove?: () => void;
 }) {
-  const maxDim = 80;
+  const maxDim = 110;
   const cellSize = Math.max(
     2,
     Math.floor(maxDim / Math.max(tpl.cols, tpl.rows))
