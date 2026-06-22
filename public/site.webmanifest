@@ -1,0 +1,31 @@
+{
+  "name": "拼豆 Pindou — 在线拼豆画制作工具",
+  "short_name": "拼豆",
+  "description": "在线拼豆（Perler beads / fuse beads）创作工具：2D 拼豆画、3D 拟物拼豆、图片一键转拼豆图案、像素画绘制，内置丰富配色与模板。",
+  "lang": "zh-CN",
+  "id": "/",
+  "start_url": "/?utm_source=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4ecd8",
+  "theme_color": "#f4ecd8",
+  "categories": ["design", "graphics", "productivity", "education"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.svg",
+      "sizes": "1200x630",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "拼豆 Pindou 主界面"
+    }
+  ]
+}

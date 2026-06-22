@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#fed7aa"/>
+      <stop offset="100%" stop-color="#fecdd3"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+    <symbol id="bead" viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="26" fill="currentColor"/>
+      <circle cx="22" cy="22" r="6" fill="#ffffff" fill-opacity="0.55"/>
+    </symbol>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="600" cy="320" r="360" fill="url(#glow)"/>
+
+  <!-- 装饰拼豆点阵 -->
+  <g filter="url(#shadow)" opacity="0.95">
+    <g transform="translate(120 180)" color="#e74c3c"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(190 180)" color="#f1c40f"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(260 180)" color="#3498db"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(330 180)" color="#2ecc71"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(120 250)" color="#f1c40f"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(190 250)" color="#e67e22"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(260 250)" color="#9b59b6"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(330 250)" color="#ec4899"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(120 320)" color="#3498db"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(190 320)" color="#2ecc71"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(260 320)" color="#ef4444"><use href="#bead" width="64" height="64"/></g>
+    <g transform="translate(330 320)" color="#facc15"><use href="#bead" width="64" height="64"/></g>
+  </g>
+
+  <!-- 右上装饰 -->
+  <g filter="url(#shadow)" opacity="0.9">
+    <g transform="translate(900 90)"  color="#facc15"><use href="#bead" width="48" height="48"/></g>
+    <g transform="translate(960 90)"  color="#3498db"><use href="#bead" width="48" height="48"/></g>
+    <g transform="translate(1020 90)" color="#ef4444"><use href="#bead" width="48" height="48"/></g>
+    <g transform="translate(1080 90)" color="#2ecc71"><use href="#bead" width="48" height="48"/></g>
+    <g transform="translate(900 150)" color="#ec4899"><use href="#bead" width="48" height="48"/></g>
+    <g transform="translate(960 150)" color="#9b59b6"><use href="#bead" width="48" height="48"/></g>
+    <g transform="translate(1020 150)" color="#f1c40f"><use href="#bead" width="48" height="48"/></g>
+  </g>
+
+  <!-- 主标题 -->
+  <g transform="translate(540 400)">
+    <text x="0" y="0" font-family="PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+          font-size="120" font-weight="800" fill="#1f2937" text-anchor="start">拼豆</text>
+    <text x="0" y="72" font-family="PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+          font-size="38" font-weight="600" fill="#6b7280" text-anchor="start">
+      在线拼豆画 · 3D 像素画创作工具
+    </text>
+  </g>
+
+  <!-- 底部三个圆点（与 favicon 呼应） -->
+  <g transform="translate(540 560)">
+    <circle cx="0"   cy="0" r="14" fill="#f43f5e"/>
+    <circle cx="36"  cy="0" r="14" fill="#f59e0b"/>
+    <circle cx="72"  cy="0" r="14" fill="#10b981"/>
+  </g>
+  <text x="1140" y="600" text-anchor="end" font-family="system-ui, sans-serif"
+        font-size="22" fill="#9ca3af">pindou.wuyuan.store</text>
+</svg>

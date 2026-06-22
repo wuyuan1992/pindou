@@ -123,6 +123,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-stone-800 focus:rounded focus:shadow-lg"
+      >
+        跳到主要内容
+      </a>
       <div className="max-w-7xl mx-auto px-4 py-6 lg:px-8 lg:py-10">
         <header className="relative z-20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
@@ -133,7 +139,7 @@ export default function App() {
               <span className="ml-2">拼豆</span>
             </h1>
             <p className="text-stone-500 text-sm mt-1">
-              {/* 2D 拖动绘制 · 3D 从左侧容器取豆放到钉子 · 右侧托盘暂存混合色豆 */}
+              在线拼豆画 / 3D 像素画创作工具 · 图片一键转拼豆图案
             </p>
           </div>
           <div className="flex items-center gap-1 flex-wrap">
@@ -159,7 +165,7 @@ export default function App() {
           className="hidden"
         />
 
-        <main className="flex flex-col items-center gap-3">
+        <main id="main" className="flex flex-col items-center gap-3">
           <div
             role="tablist"
             aria-label="视图模式"
@@ -222,12 +228,15 @@ export default function App() {
           </div>
         </main>
 
-        <footer className="mt-8 text-center text-xs text-stone-400">
+        <footer className="mt-8 text-center text-xs text-stone-400 space-y-1">
           <p>
-            2D：按住鼠标拖动连续绘制 · 右键唤出调色板快速换色 · hover 预览当前颜色
+            2D 拼豆画：按住鼠标拖动连续绘制 · 右键唤出调色板快速换色 · hover 预览当前颜色
           </p>
-          <p className="mt-1">
-            3D：左侧容器取豆入栈 · peg 上放下/拾取 · 右侧托盘右键扔下/左键拾取 · 长按连续
+          <p>
+            3D 拟物拼豆：左侧容器取豆入栈 · peg 上放下/拾取 · 右侧托盘右键扔下/左键拾取 · 长按连续
+          </p>
+          <p className="pt-2 text-stone-400">
+            拼豆 Pindou — 免费在线拼豆 / 像素画制作工具（Perler beads · fuse beads · pixel art maker）
           </p>
         </footer>
       </div>

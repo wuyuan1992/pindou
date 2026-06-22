@@ -1,0 +1,32 @@
+# 拼豆 Pindou — https://pindou.wuyuan.store
+User-agent: *
+Allow: /
+
+# 主流搜索引擎单独声明，确保索引
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: Sogou web spider
+Allow: /
+
+User-agent: 360Spider
+Allow: /
+
+# 静态资源也允许抓取
+User-agent: *
+Allow: /assets/
+Allow: /og-image.svg
+Allow: /favicon.svg
+Allow: /robots.txt
+Allow: /sitemap.xml
+Allow: /site.webmanifest
+
+# 没有需要屏蔽的路径
+# Sitemap 地址
+Sitemap: https://pindou.wuyuan.store/sitemap.xml

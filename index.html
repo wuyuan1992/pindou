@@ -2,13 +2,135 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- 基础 -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="canonical" href="https://pindou.wuyuan.store/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#f4ecd8" />
-    <title>拼豆</title>
+    <meta name="color-scheme" content="light" />
+
+    <!-- 主 SEO meta -->
+    <title>拼豆 · 在线拼豆画制作工具 · 3D 像素画 / 拼豆图案生成器 | Pindou</title>
+    <meta
+      name="description"
+      content="拼豆（Perler beads / fuse beads）在线创作工具：支持 2D 拼豆画与 3D 拟物拼豆，图片一键转拼豆图案，内置丰富配色与模板。免费、免登录、浏览器直接使用，适合手工 DIY、像素艺术与亲子创作。"
+    />
+    <meta
+      name="keywords"
+      content="拼豆,拼豆画,拼豆模板,拼豆图案,拼豆设计,图片转拼豆,在线拼豆,拼豆制作工具,像素画,像素艺术,像素画制作,像素画生成器,3D拼豆,Perler beads,fuse beads,hama beads,bead pattern,pixel art maker,儿童手工,创意 DIY,手工制作"
+    />
+    <meta name="author" content="Pindou" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="bingbot" content="index, follow" />
+    <meta name="application-name" content="拼豆 Pindou" />
+    <meta name="apple-mobile-web-app-title" content="拼豆" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="拼豆 Pindou" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:url" content="https://pindou.wuyuan.store/" />
+    <meta property="og:title" content="拼豆 · 在线拼豆画制作工具 · 3D 像素画 / 拼豆图案生成器" />
+    <meta
+      property="og:description"
+      content="免费在线拼豆创作工具：2D 拼豆画 + 3D 拟物拼豆，图片一键转拼豆图案，内置丰富配色与模板。手工 DIY、像素艺术、亲子创作首选。"
+    />
+    <meta property="og:image" content="https://pindou.wuyuan.store/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="拼豆 Pindou — 在线拼豆画 / 像素画创作工具封面" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="拼豆 · 在线拼豆画制作工具 · 3D 像素画 / 拼豆图案生成器" />
+    <meta
+      name="twitter:description"
+      content="免费在线拼豆创作工具：2D 拼豆画 + 3D 拟物拼豆，图片一键转拼豆图案，内置丰富配色与模板。"
+    />
+    <meta name="twitter:image" content="https://pindou.wuyuan.store/og-image.svg" />
+    <meta name="twitter:image:alt" content="拼豆 Pindou 封面" />
+
+    <!-- 结构化数据 -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "@id": "https://pindou.wuyuan.store/#webapp",
+            "url": "https://pindou.wuyuan.store/",
+            "name": "拼豆 Pindou",
+            "alternateName": "Pindou · 在线拼豆画制作工具",
+            "description": "在线拼豆创作工具，支持 2D 拼豆画、3D 拟物拼豆与图片一键转拼豆图案，内置丰富配色与模板，免费免登录。",
+            "applicationCategory": "DesignApplication",
+            "operatingSystem": "Web",
+            "browserRequirements": "Requires a modern browser with WebGL and JavaScript",
+            "inLanguage": ["zh-CN", "en"],
+            "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "CNY"
+            },
+            "featureList": [
+              "2D 拼豆画绘制",
+              "3D 拟物拼豆",
+              "图片一键转拼豆图案",
+              "丰富的拼豆配色",
+              "内置拼豆模板",
+              "导出 PNG 图片",
+              "免登录、浏览器直接使用"
+            ],
+            "audience": {
+              "@type": "Audience",
+              "audienceType": "手工爱好者、像素艺术创作者、亲子家庭"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://pindou.wuyuan.store/#website",
+            "url": "https://pindou.wuyuan.store/",
+            "name": "拼豆 Pindou",
+            "publisher": { "@id": "https://pindou.wuyuan.store/#webapp" },
+            "inLanguage": "zh-CN"
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://pindou.wuyuan.store/#org",
+            "name": "Pindou",
+            "url": "https://pindou.wuyuan.store/"
+          }
+        ]
+      }
+    </script>
+
+    <!-- 预连接到主流字体与图标源（无外部资源时可留空） -->
   </head>
   <body>
+    <h1 class="seo-only">拼豆 · 在线拼豆画 / 3D 像素画创作工具</h1>
+    <p class="seo-only">
+      拼豆（Perler beads / fuse beads）在线创作工具。支持 2D 拼豆画、3D 拟物拼豆、图片转拼豆图案、像素画绘制，内置丰富拼豆配色与模板，免费免登录，浏览器直接使用。
+    </p>
     <div id="root"></div>
+    <noscript>
+      <div style="max-width: 640px; margin: 64px auto; padding: 0 24px; font-family: system-ui, sans-serif; color: #333;">
+        <h1>拼豆 · 在线拼豆画制作工具</h1>
+        <p>
+          拼豆 Pindou 是一款免费的在线拼豆（Perler beads / fuse beads）创作工具，提供 2D 拼豆画、3D 拟物拼豆、图片一键转拼豆图案、像素画绘制等功能，内置丰富拼豆配色与模板，适合手工 DIY、像素艺术与亲子创作。
+        </p>
+        <p>请启用 JavaScript 后访问本应用。</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
