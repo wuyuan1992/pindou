@@ -21,10 +21,10 @@ interface PindouCanvasProps {
   onTrayPick?: (colorId: string) => void;
 }
 
-const DEFAULT_CAM_POS = new THREE.Vector3(1, 46, 18);
-const DEFAULT_CAM_LOOK = new THREE.Vector3(1, 0, 0);
-const PREVIEW_CAM_HEIGHT = 32;
-const PREVIEW_BOARD_LIFT = 4;
+const DEFAULT_CAM_POS = new THREE.Vector3(0.5, 28, 11);
+const DEFAULT_CAM_LOOK = new THREE.Vector3(0.5, 0, 0);
+const PREVIEW_CAM_HEIGHT = 22;
+const PREVIEW_BOARD_LIFT = 2;
 
 function CameraRig() {
   const camera = useThree((s) => s.camera);
@@ -63,8 +63,8 @@ function CameraRig() {
 function Table() {
   const material = useMemo(() => createTableMaterial(), []);
   return (
-    <mesh position={[0, -0.06, 0]} material={material} receiveShadow>
-      <boxGeometry args={[44, 0.12, 32]} />
+    <mesh position={[0, -0.03, 0]} material={material} receiveShadow>
+      <boxGeometry args={[34, 0.06, 22]} />
     </mesh>
   );
 }
@@ -83,7 +83,7 @@ export function PindouCanvas({
     <div className={className} style={{ width: "100%", height: "100%", ...style }}>
       <Canvas
         shadows
-        camera={{ position: [1, 46, 18], fov: 44, near: 0.1, far: 200 }}
+        camera={{ position: [0.5, 28, 11], fov: 44, near: 0.1, far: 200 }}
         gl={{ preserveDrawingBuffer: true, antialias: true }}
         dpr={[1, 2]}
         style={{ width: "100%", height: "100%" }}
@@ -95,19 +95,19 @@ export function PindouCanvas({
         <ambientLight intensity={0.55} />
         <hemisphereLight args={["#fff5e0", "#d8c394", 0.55]} />
         <directionalLight
-          position={[12, 18, 8]}
+          position={[6, 9, 4]}
           intensity={1.25}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
-          shadow-camera-near={0.5}
-          shadow-camera-far={80}
-          shadow-camera-left={-34}
-          shadow-camera-right={34}
-          shadow-camera-top={28}
-          shadow-camera-bottom={-28}
+          shadow-camera-near={0.25}
+          shadow-camera-far={40}
+          shadow-camera-left={-17}
+          shadow-camera-right={17}
+          shadow-camera-top={14}
+          shadow-camera-bottom={-14}
         />
-        <directionalLight position={[-10, 10, -6]} intensity={0.35} color="#b9d4ff" />
+        <directionalLight position={[-5, 5, -3]} intensity={0.35} color="#b9d4ff" />
 
         <Suspense fallback={null}>
           <Table />
@@ -118,21 +118,21 @@ export function PindouCanvas({
           <Environment resolution={512}>
             <Lightformer
               intensity={1.4}
-              position={[0, 10, 0]}
-              scale={[20, 20, 1]}
+              position={[0, 5, 0]}
+              scale={[10, 10, 1]}
               color="#fff2dc"
             />
             <Lightformer
               intensity={0.85}
-              position={[-8, 5, -6]}
-              scale={[6, 6, 1]}
+              position={[-4, 2.5, -3]}
+              scale={[3, 3, 1]}
               rotation-y={Math.PI / 4}
               color="#ffe2b0"
             />
             <Lightformer
               intensity={0.7}
-              position={[6, 4, 6]}
-              scale={[6, 6, 1]}
+              position={[3, 2, 3]}
+              scale={[3, 3, 1]}
               rotation-y={-Math.PI / 4}
               color="#cfe0ff"
             />
@@ -140,9 +140,9 @@ export function PindouCanvas({
         </Suspense>
 
         <ContactShadows
-          position={[0, 0.005, 0]}
-          scale={60}
-          far={6}
+          position={[0, 0.0025, 0]}
+          scale={30}
+          far={3}
           blur={2.6}
           opacity={0.38}
           resolution={1024}

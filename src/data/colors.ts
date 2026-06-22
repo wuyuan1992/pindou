@@ -1,5 +1,4 @@
 import type { BeadColor } from "../types.ts";
-import { deterministicUuid } from "../lib/uuid.ts";
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
@@ -85,90 +84,129 @@ function derive(base: string): { highlight: string; shadow: string; hue: number 
   };
 }
 
-function defineColor(slug: string, name: string, base: string): BeadColor {
-  const { highlight, shadow, hue } = derive(base);
+// 真实拼豆色卡（参考 Perler / Artkal 主流色系，按色系分组）。
+// 每个家族里颜色从浅到深排列，便于 UI 渲染时呈现自然渐变。
+// ID = hex（小写），所有引用都以 hex 作为唯一 key。
+export interface PaletteFamily {
+  name: string;
+  hexes: string[];
+}
+
+export const PALETTE_FAMILIES: PaletteFamily[] = [
+  {
+    name: "白灰",
+    hexes: [
+      "#ffffff",
+      "#f4ecd8",
+      "#e6dfc6",
+      "#c8c2b5",
+      "#9a9388",
+      "#6e6960",
+      "#44403a",
+      "#26241f",
+      "#000000",
+    ],
+  },
+  {
+    name: "黄",
+    hexes: ["#ffee8a", "#ffd93d", "#f5a623", "#c88e0e", "#8a640c"],
+  },
+  {
+    name: "橙",
+    hexes: ["#ffb58a", "#ff8a3d", "#e5621e", "#a04515"],
+  },
+  {
+    name: "红",
+    hexes: ["#f7b5b5", "#e84747", "#c22727", "#8e1818", "#5a1010"],
+  },
+  {
+    name: "粉",
+    hexes: ["#ffc2d4", "#ff8fb0", "#e85a8a", "#a8336b"],
+  },
+  {
+    name: "紫",
+    hexes: ["#c9a0dc", "#9b6bb0", "#6b3a78", "#4a1e5c"],
+  },
+  {
+    name: "蓝",
+    hexes: ["#a8c8f0", "#6fa8dc", "#3a6fcf", "#1e45a4", "#18306b", "#0d1f4a"],
+  },
+  {
+    name: "青",
+    hexes: ["#7dd3d8", "#1b9aaa", "#0d6b7a"],
+  },
+  {
+    name: "绿",
+    hexes: ["#bfe39a", "#7fcb5a", "#3fa535", "#6b8e23", "#1e7a2f", "#124a1c"],
+  },
+  {
+    name: "棕",
+    hexes: ["#e5c77e", "#c9a66b", "#9b6b2c", "#6b381c", "#3d2010"],
+  },
+];
+
+// 扁平化所有家族的 hex，用于量化、查最近色等场景。
+export const PALETTE_HEX: string[] = PALETTE_FAMILIES.flatMap((f) => f.hexes);
+
+// 旧 API 兼容（部分代码仍引用这些常量）。
+export const PALETTE_BLACK = "#000000";
+export const PALETTE_WHITE = "#ffffff";
+
+function defineColor(hex: string): BeadColor {
+  const { highlight, shadow, hue } = derive(hex);
   return {
-    id: deterministicUuid("color", slug),
-    slug,
-    name,
-    base,
+    id: hex,
+    slug: hex,
+    name: hex,
+    base: hex,
     highlight,
     shadow,
     hue,
   };
 }
 
-export const COLORS: BeadColor[] = [
-  // 红粉 (8): 从浅粉到深酒红
-  defineColor("blush", "腮红粉", "#ffd9e0"),
-  defineColor("sakura", "樱花粉", "#ffb3c6"),
-  defineColor("coral", "珊瑚粉", "#ff8fa3"),
-  defineColor("rose", "玫瑰", "#ff5d8f"),
-  defineColor("hotpink", "热粉", "#ff2d7a"),
-  defineColor("crimson", "绯红", "#e0144d"),
-  defineColor("cherry", "樱桃红", "#c8102e"),
-  defineColor("wine", "酒红", "#7a1c2f"),
-
-  // 橙黄 (8): 从奶黄到锈橙
-  defineColor("cream", "奶油", "#fff1c2"),
-  defineColor("butter", "黄油", "#ffe082"),
-  defineColor("lemon", "柠檬", "#ffd60a"),
-  defineColor("honey", "蜂蜜", "#f6a800"),
-  defineColor("amber", "琥珀", "#ed7e00"),
-  defineColor("tangerine", "橘红", "#ff6b1c"),
-  defineColor("pumpkin", "南瓜", "#d84315"),
-  defineColor("terracotta", "陶土", "#a8391a"),
-
-  // 绿青 (8): 从薄荷到深松
-  defineColor("mintcream", "薄荷霜", "#d4f5e0"),
-  defineColor("mint", "薄荷", "#9be3b8"),
-  defineColor("pistachio", "开心果", "#7ed9a3"),
-  defineColor("lime", "青柠", "#a3e635"),
-  defineColor("emerald", "翡翠", "#10b981"),
-  defineColor("forest", "森林", "#0d7a4f"),
-  defineColor("teal", "青绿", "#0f9b8e"),
-  defineColor("pine", "深松", "#0a4f3f"),
-
-  // 蓝紫 (8): 从天空到深紫
-  defineColor("skycream", "天空霜", "#d9efff"),
-  defineColor("sky", "天空", "#8ecaff"),
-  defineColor("azure", "蔚蓝", "#3da9fc"),
-  defineColor("cobalt", "钴蓝", "#1c6dd0"),
-  defineColor("sapphire", "宝蓝", "#0c2d8a"),
-  defineColor("lavender", "薰衣草", "#c8b6ff"),
-  defineColor("violet", "紫罗兰", "#8b5cf6"),
-  defineColor("indigo", "靛青", "#3a1f8a"),
-
-  // 中性 (8): 从象牙到炭黑
-  defineColor("ivory", "象牙", "#faf6ec"),
-  defineColor("sand", "沙色", "#e8d5a8"),
-  defineColor("taupe", "灰褐", "#b8a888"),
-  defineColor("stone", "石灰", "#8a8a85"),
-  defineColor("graphite", "石墨", "#4a4a48"),
-  defineColor("espresso", "咖啡", "#3a2a20"),
-  defineColor("chocolate", "巧克力", "#241814"),
-  defineColor("onyx", "玛瑙黑", "#0e0e10"),
-];
-
-export interface ColorGroup {
-  name: string;
-  slugs: string[];
-}
-
-export const COLOR_GROUPS: ColorGroup[] = [
-  { name: "红粉", slugs: ["blush", "sakura", "coral", "rose", "hotpink", "crimson", "cherry", "wine"] },
-  { name: "橙黄", slugs: ["cream", "butter", "lemon", "honey", "amber", "tangerine", "pumpkin", "terracotta"] },
-  { name: "绿青", slugs: ["mintcream", "mint", "pistachio", "lime", "emerald", "forest", "teal", "pine"] },
-  { name: "蓝紫", slugs: ["skycream", "sky", "azure", "cobalt", "sapphire", "lavender", "violet", "indigo"] },
-  { name: "中性", slugs: ["ivory", "sand", "taupe", "stone", "graphite", "espresso", "chocolate", "onyx"] },
-];
+export const COLORS: BeadColor[] = PALETTE_HEX.map(defineColor);
 
 export const COLOR_MAP: Record<string, BeadColor> = Object.fromEntries(
   COLORS.map((c) => [c.id, c])
 );
 
-export const COLOR_BY_SLUG: Record<string, BeadColor> = Object.fromEntries(
-  COLORS.map((c) => [c.slug, c])
-);
+export const COLOR_BY_SLUG: Record<string, BeadColor> = COLOR_MAP;
 
-export const DEFAULT_COLOR_ID = COLOR_BY_SLUG.cherry.id;
+// 默认色：中等明度的红色（#e84747），适合做初始笔触。
+export const DEFAULT_COLOR_ID = "#e84747";
+
+// 用 redmean 距离在 PALETTE_HEX 中找最接近的 hex。用于把任意 hex
+// （比如旧模板里的非网格色、或导入图片的原始像素）映射到当前调色板。
+const PALETTE_RGB: ReadonlyArray<readonly [number, number, number, string]> =
+  PALETTE_HEX.map((hex) => {
+    const [r, g, b] = hexToRgb(hex);
+    return [r, g, b, hex] as const;
+  });
+
+export function findClosestPaletteHex(hex: string): string {
+  const [r1, g1, b1] = hexToRgb(hex);
+  let best = PALETTE_RGB[0][3];
+  let bestDist = Infinity;
+  for (const [r2, g2, b2, candidate] of PALETTE_RGB) {
+    const rmean = (r1 + r2) / 2;
+    const dr = r1 - r2;
+    const dg = g1 - g2;
+    const db = b1 - b2;
+    const d =
+      ((512 + rmean) * dr * dr) / 256 +
+      4 * dg * dg +
+      ((767 - rmean) * db * db) / 256;
+    if (d < bestDist) {
+      bestDist = d;
+      best = candidate;
+    }
+  }
+  return best;
+}
+
+// 兜底查询：调色板换过之后，localStorage 里可能残留旧 hex ID。
+// 直接 COLOR_MAP[id] 查不到就退回到最近色，保证渲染不崩。
+export function getColor(id: string): BeadColor {
+  return COLOR_MAP[id] ?? COLOR_MAP[findClosestPaletteHex(id)];
+}

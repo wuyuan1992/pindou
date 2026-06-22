@@ -6,7 +6,7 @@ import { useTrayStore } from "../store/useTrayStore.ts";
 import { useStackStore, STACK_SIZE } from "../store/useStackStore.ts";
 import { useGrabStore } from "../store/useGrabStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
-import { COLOR_MAP } from "../data/colors.ts";
+import { getColor } from "../data/colors.ts";
 import {
   createBeadGeometry,
   createGlassBeadMaterial,
@@ -16,21 +16,21 @@ import {
 import { BEAD_HEIGHT } from "./constants.ts";
 import { ItemHandler } from "./Handler.tsx";
 
-const TRAY_SIZE_X = 10.46;
-const TRAY_SIZE_Z = 8.05;
-const TRAY_WALL_H = 0.45;
-const TRAY_WALL_T = 0.07;
+const TRAY_SIZE_X = 5.23;
+const TRAY_SIZE_Z = 4.025;
+const TRAY_WALL_H = 0.225;
+const TRAY_WALL_T = 0.035;
 
-const PUSH_RADIUS = 0.62;
+const PUSH_RADIUS = 0.31;
 const PUSH_FORCE = 6;
 const DAMPING_RATE = 2.6;
 const WALL_RESTITUTION = 0.4;
-const BEAD_DIAMETER = 0.84;
+const BEAD_DIAMETER = 0.42;
 const COLLISION_SLOP = 0.92;
 
 const REPEAT_INTERVAL = 0.16;
 const MAX_TRAY_BEADS = 120;
-const PICK_RADIUS = 0.55;
+const PICK_RADIUS = 0.275;
 
 interface TrayProps {
   onDrop?: (colorId: string) => void;
@@ -60,8 +60,8 @@ export function Tray({ onDrop, onPick }: TrayProps) {
     return (colorId: string) => {
       let m = cache.get(colorId);
       if (!m) {
-        const color = COLOR_MAP[colorId];
-        m = createGlassBeadMaterial(color?.base ?? "#ffffff");
+        const color = getColor(colorId);
+        m = createGlassBeadMaterial(color.base);
         cache.set(colorId, m);
       }
       return m;
@@ -304,8 +304,8 @@ export function Tray({ onDrop, onPick }: TrayProps) {
       <ItemHandler
         itemKey="tray"
         side="bottom"
-        offset={[0, 0.4, TRAY_SIZE_Z / 2 + 0.18]}
-        length={TRAY_SIZE_X - 0.3}
+        offset={[0, 0.2, TRAY_SIZE_Z / 2 + 0.09]}
+        length={TRAY_SIZE_X - 0.15}
       />
     </group>
   );
@@ -322,10 +322,10 @@ function TrayShell() {
   return (
     <group>
       <RoundedBox
-        args={[TRAY_SIZE_X, 0.1, TRAY_SIZE_Z]}
-        radius={0.05}
+        args={[TRAY_SIZE_X, 0.05, TRAY_SIZE_Z]}
+        radius={0.025}
         smoothness={4}
-        position={[0, 0.05, 0]}
+        position={[0, 0.025, 0]}
         material={floorMat}
         receiveShadow
       />
@@ -338,7 +338,7 @@ function TrayShell() {
         <RoundedBox
           key={i}
           args={w.size as [number, number, number]}
-          radius={0.03}
+          radius={0.015}
           smoothness={3}
           position={w.pos as [number, number, number]}
           material={wallMat}

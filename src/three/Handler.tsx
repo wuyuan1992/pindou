@@ -14,7 +14,7 @@ interface ItemHandlerProps {
   onDoubleClick?: () => void;
 }
 
-const TABLE_BOUNDS = { minX: -19, maxX: 19, minZ: -14, maxZ: 14 };
+const TABLE_BOUNDS = { minX: -9.5, maxX: 9.5, minZ: -7, maxZ: 7 };
 
 export function ItemHandler({
   itemKey,
@@ -138,20 +138,20 @@ export function ItemHandler({
   const isDragging = draggingItem === itemKey;
 
   const barArgs: [number, number, number] = isHorizontal
-    ? [length, 0.45, 0.32]
-    : [0.32, 0.45, length];
+    ? [length, 0.225, 0.16]
+    : [0.16, 0.225, length];
   const capSize: [number, number, number] = isHorizontal
-    ? [0.12, 0.45, 0.42]
-    : [0.42, 0.45, 0.12];
+    ? [0.06, 0.225, 0.21]
+    : [0.21, 0.225, 0.06];
   const capPos1: [number, number, number] = isHorizontal
-    ? [length / 2 + 0.06, 0, 0]
-    : [0, 0, length / 2 + 0.06];
+    ? [length / 2 + 0.03, 0, 0]
+    : [0, 0, length / 2 + 0.03];
   const capPos2: [number, number, number] = isHorizontal
-    ? [-length / 2 - 0.06, 0, 0]
-    : [0, 0, -length / 2 - 0.06];
+    ? [-length / 2 - 0.03, 0, 0]
+    : [0, 0, -length / 2 - 0.03];
   const hitArgs: [number, number, number] = isHorizontal
-    ? [length + 0.6, 1.1, 0.9]
-    : [0.9, 1.1, length + 0.6];
+    ? [length + 0.3, 0.55, 0.45]
+    : [0.45, 0.55, length + 0.3];
 
   return (
     <group position={offset}>

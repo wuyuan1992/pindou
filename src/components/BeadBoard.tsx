@@ -5,7 +5,7 @@ import {
   useState,
 } from "react";
 import { useBeadStore } from "../store/useBeadStore.ts";
-import { COLOR_MAP } from "../data/colors.ts";
+import { getColor } from "../data/colors.ts";
 import { Bead } from "./Bead.tsx";
 import { useDrawing } from "../hooks/useDrawing.ts";
 import { QuickPalette } from "./QuickPalette.tsx";
@@ -31,7 +31,7 @@ export const BeadBoard = forwardRef<HTMLDivElement, BeadBoardProps>(
     );
 
     const previewColor =
-      hoveredIdx !== null ? COLOR_MAP[currentColorId] : null;
+      hoveredIdx !== null ? getColor(currentColorId) : null;
 
     const onContextMenu = useCallback(
       (e: React.MouseEvent) => {
@@ -60,7 +60,7 @@ export const BeadBoard = forwardRef<HTMLDivElement, BeadBoardProps>(
       <>
         <div ref={ref} style={boardStyle} data-export-root onContextMenu={onContextMenu}>
           {grid.map((colorId, idx) => {
-            const color = colorId ? COLOR_MAP[colorId] : null;
+            const color = colorId ? getColor(colorId) : null;
             const isHovered = hoveredIdx === idx;
             return (
               <div

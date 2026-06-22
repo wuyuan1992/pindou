@@ -1,24 +1,24 @@
 import { DEFAULT_TRANSFORMS, type ItemTransform } from "../store/useLayoutStore.ts";
 
-export const BOARD_N = 20;
-export const CELL = 1;
+export const BOARD_N = 40;
+export const CELL = 0.32;
 export const BOARD_SIZE = BOARD_N * CELL;
 export const BOARD_HALF = BOARD_SIZE / 2;
 
-export const BOARD_THICKNESS = 0.5;
+export const BOARD_THICKNESS = 0.25;
 export const BOARD_TOP_Y = BOARD_THICKNESS / 2;
 
-export const PEG_RADIUS = 0.12;
-export const PEG_HEIGHT = 1.5;
+export const PEG_RADIUS = 0.06;
+export const PEG_HEIGHT = 0.75;
 export const PEG_TOP_Y = BOARD_TOP_Y + PEG_HEIGHT;
 
-export const BEAD_OUTER_R = 0.42;
-export const BEAD_INNER_R = 0.15;
-export const BEAD_HEIGHT = 1.4;
+export const BEAD_OUTER_R = 0.1;
+export const BEAD_INNER_R = 0.05;
+export const BEAD_HEIGHT = 0.8;
 export const BEAD_TOP_Y = BOARD_TOP_Y + BEAD_HEIGHT;
 export const BEAD_CENTER_Y = BOARD_TOP_Y + BEAD_HEIGHT / 2;
 
-export const DRAG_PLANE_Y = PEG_TOP_Y + BEAD_HEIGHT + 0.3;
+export const DRAG_PLANE_Y = PEG_TOP_Y + BEAD_HEIGHT + 0.15;
 
 export const BOARD_COLOR = "#f4ecd8";
 export const BOARD_EDGE_COLOR = "#d4c4a0";
@@ -61,14 +61,16 @@ export function boardWorldToLocal(wx: number, wz: number): [number, number] {
 }
 
 export function gridToWorld(col: number, row: number): [number, number, number] {
-  const x = col - (BOARD_N - 1) / 2;
-  const z = row - (BOARD_N - 1) / 2;
+  const half = (BOARD_N - 1) / 2;
+  const x = (col - half) * CELL;
+  const z = (row - half) * CELL;
   return [x, 0, z];
 }
 
 export function worldToGridFloor(x: number, z: number): { col: number; row: number } | null {
-  const col = Math.round(x + (BOARD_N - 1) / 2);
-  const row = Math.round(z + (BOARD_N - 1) / 2);
+  const half = (BOARD_N - 1) / 2;
+  const col = Math.round(x / CELL + half);
+  const row = Math.round(z / CELL + half);
   if (col < 0 || col >= BOARD_N || row < 0 || row >= BOARD_N) return null;
   return { col, row };
 }

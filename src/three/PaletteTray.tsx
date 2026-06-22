@@ -2,7 +2,9 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
-import { COLORS, COLOR_GROUPS } from "../data/colors.ts";
+import {
+  PALETTE_FAMILIES,
+} from "../data/colors.ts";
 import { useGrabStore } from "../store/useGrabStore.ts";
 import { useStackStore, STACK_SIZE } from "../store/useStackStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
@@ -11,45 +13,38 @@ import {
   createGlassBeadMaterial,
   createFrostedShellMaterial,
 } from "./materials.ts";
-import { BEAD_HEIGHT } from "./constants.ts";
+import { BEAD_HEIGHT, BEAD_OUTER_R } from "./constants.ts";
 import { ItemHandler } from "./Handler.tsx";
 
-const ROWS = COLOR_GROUPS.length;
-const COLS = 8;
-const CELL_SIZE = 1.05;
-const CELL_GAP = 0.18;
+// 按色系分组，每行一族；行宽可变，整行水平居中到最长行的宽度。
+const FAMILIES = PALETTE_FAMILIES;
+const ROWS = FAMILIES.length;
+const COLS = Math.max(...FAMILIES.map((f) => f.hexes.length));
+
+const CELL_SIZE = 0.36;
+const CELL_GAP = 0.04;
 const CELL_STEP = CELL_SIZE + CELL_GAP;
-const CELL_INNER = CELL_SIZE - 0.14;
-const CELL_WALL_H = 0.55;
-const CELL_WALL_T = 0.05;
-const SECTION_GAP = 0.5;
-const TRAY_PAD = 0.4;
+const CELL_INNER = CELL_SIZE - 0.07;
+const CELL_WALL_H = 0.275;
+const CELL_WALL_T = 0.025;
+const TRAY_PAD = 0.2;
 
 const TRAY_WIDTH = COLS * CELL_STEP - CELL_GAP + TRAY_PAD * 2;
-const TRAY_DEPTH = ROWS * (CELL_STEP - CELL_GAP + SECTION_GAP) - SECTION_GAP + TRAY_PAD * 2;
+const TRAY_DEPTH = ROWS * CELL_STEP - CELL_GAP + TRAY_PAD * 2;
 
-const INITIAL_BEADS = 10;
-const VISIBLE_MAX = 7;
-const PUSH_RADIUS = 0.55;
+const INITIAL_BEADS = 8;
+const VISIBLE_MAX = 5;
+const PUSH_RADIUS = 0.255;
 const PUSH_FORCE = 5.5;
 const SPRING = 22;
 const DAMPING = 7;
 const MAX_SPEED = 4;
 const REPEAT_INTERVAL = 0.16;
 
-const SECTION_TINTS: Record<string, string> = {
-  红粉: "#f9dde2",
-  橙黄: "#f9e6c5",
-  绿青: "#dcefe0",
-  蓝紫: "#dde6f4",
-  中性: "#eee9dc",
-};
-
 interface CellInfo {
   colorId: string;
   row: number;
   col: number;
-  tint: string;
 }
 
 interface BeadData {
@@ -60,18 +55,18 @@ interface BeadData {
 
 function buildCells(): CellInfo[] {
   const cells: CellInfo[] = [];
-  COLOR_GROUPS.forEach((g, rowIdx) => {
-    const tint = SECTION_TINTS[g.name] ?? "#eee9dc";
-    g.slugs.forEach((slug, colIdx) => {
-      const c = COLORS.find((cc) => cc.slug === slug);
-      if (c) cells.push({ colorId: c.id, row: rowIdx, col: colIdx, tint });
-    });
-  });
+  for (let r = 0; r < FAMILIES.length; r++) {
+    const family = FAMILIES[r];
+    const offset = Math.floor((COLS - family.hexes.length) / 2);
+    for (let i = 0; i < family.hexes.length; i++) {
+      cells.push({ colorId: family.hexes[i], row: r, col: offset + i });
+    }
+  }
   return cells;
 }
 
 function cellLocalPos(row: number, col: number): [number, number, number] {
-  const z = -((ROWS - 1) / 2) * (CELL_STEP + SECTION_GAP - CELL_GAP) + row * (CELL_STEP + SECTION_GAP - CELL_GAP);
+  const z = -((ROWS - 1) / 2) * CELL_STEP + row * CELL_STEP;
   const x = -((COLS - 1) / 2) * CELL_STEP + col * CELL_STEP;
   return [x, 0, z];
 }
@@ -93,15 +88,14 @@ export function PaletteTray({
           colorId={cell.colorId}
           row={cell.row}
           col={cell.col}
-          tint={cell.tint}
           onPickBead={onPickBead}
         />
       ))}
       <ItemHandler
         itemKey="palette"
         side="bottom"
-        offset={[0, 0.4, TRAY_DEPTH / 2 + 0.18]}
-        length={TRAY_WIDTH - 0.3}
+        offset={[0, 0.2, TRAY_DEPTH / 2 + 0.09]}
+        length={TRAY_WIDTH - 0.15}
       />
     </group>
   );
@@ -111,33 +105,31 @@ function Cell({
   colorId,
   row,
   col,
-  tint,
   onPickBead,
 }: {
   colorId: string;
   row: number;
   col: number;
-  tint: string;
   onPickBead?: (colorId: string) => void;
 }) {
-  const colorDef = useMemo(() => COLORS.find((c) => c.id === colorId), [colorId]);
   const [pos] = useState(() => cellLocalPos(row, col));
 
   const geometry = useMemo(() => createBeadGeometry(), []);
   const material = useMemo(
-    () => createGlassBeadMaterial(colorDef?.base ?? "#ffffff"),
-    [colorDef]
+    () => createGlassBeadMaterial(colorId),
+    [colorId]
   );
 
   const [count, setCount] = useState(INITIAL_BEADS);
 
   const beadsTemplate = useMemo<BeadData[]>(() => {
     const arr: BeadData[] = [];
+    const maxR = CELL_INNER / 2 - BEAD_OUTER_R;
     for (let i = 0; i < VISIBLE_MAX; i++) {
       const angle = (i / VISIBLE_MAX) * Math.PI * 2 + i * 0.37;
-      const r = 0.18 + (i % 3) * 0.05;
-      const x = Math.cos(angle) * r + (Math.random() - 0.5) * 0.1;
-      const z = Math.sin(angle) * r + (Math.random() - 0.5) * 0.1;
+      const r = maxR * (0.4 + (i % 3) * 0.15);
+      const x = Math.cos(angle) * r + (Math.random() - 0.5) * 0.02;
+      const z = Math.sin(angle) * r + (Math.random() - 0.5) * 0.02;
       const v = new THREE.Vector3(x, 0, z);
       arr.push({ home: v.clone(), pos: v.clone(), vel: new THREE.Vector3() });
     }
@@ -190,7 +182,7 @@ function Cell({
       b.pos.x += b.vel.x * dt;
       b.pos.z += b.vel.z * dt;
 
-      const maxR = CELL_INNER / 2 - 0.42;
+      const maxR = CELL_INNER / 2 - BEAD_OUTER_R;
       const r = Math.hypot(b.pos.x, b.pos.z);
       if (r > maxR) {
         b.pos.x = (b.pos.x / r) * maxR;
@@ -248,7 +240,7 @@ function Cell({
 
   return (
     <group position={pos}>
-      <CellShell tint={tint} />
+      <CellShell hex={colorId} />
       {beadsTemplate.map((b, i) => (
         <mesh
           key={i}
@@ -274,14 +266,14 @@ function Cell({
         />
       ))}
       {hovered && !empty && (
-        <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[CELL_SIZE / 2 - 0.04, CELL_SIZE / 2, 32]} />
+        <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[CELL_SIZE / 2 - 0.02, CELL_SIZE / 2, 32]} />
           <meshBasicMaterial color="#f59e0b" transparent opacity={0.85} />
         </mesh>
       )}
       {empty && (
-        <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[CELL_SIZE / 2 - 0.04, CELL_SIZE / 2, 32]} />
+        <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[CELL_SIZE / 2 - 0.02, CELL_SIZE / 2, 32]} />
           <meshBasicMaterial color="#9ca3af" transparent opacity={0.4} />
         </mesh>
       )}
@@ -290,19 +282,19 @@ function Cell({
   );
 }
 
-function CellShell({ tint }: { tint: string }) {
+function CellShell({ hex }: { hex: string }) {
   const half = CELL_SIZE / 2;
   const wallH = CELL_WALL_H;
-  const floorMat = useMemo(() => createFrostedShellMaterial(tint), [tint]);
-  const wallMat = useMemo(() => createFrostedShellMaterial(tint), [tint]);
+  const floorMat = useMemo(() => createFrostedShellMaterial(hex), [hex]);
+  const wallMat = useMemo(() => createFrostedShellMaterial(hex), [hex]);
 
   return (
     <group>
       <RoundedBox
-        args={[CELL_SIZE, 0.08, CELL_SIZE]}
-        radius={0.04}
+        args={[CELL_SIZE, 0.04, CELL_SIZE]}
+        radius={0.02}
         smoothness={4}
-        position={[0, 0.04, 0]}
+        position={[0, 0.02, 0]}
         material={floorMat}
         receiveShadow
       />
@@ -315,7 +307,7 @@ function CellShell({ tint }: { tint: string }) {
         <RoundedBox
           key={i}
           args={w.size as [number, number, number]}
-          radius={0.025}
+          radius={0.0125}
           smoothness={3}
           position={w.pos as [number, number, number]}
           material={wallMat}
@@ -333,13 +325,13 @@ function TrayShell() {
       new THREE.MeshPhysicalMaterial({
         color: new THREE.Color("#f1ead8"),
         transmission: 0.5,
-        thickness: 1.0,
+        thickness: 0.5,
         roughness: 0.24,
         ior: 1.4,
         clearcoat: 0.9,
         clearcoatRoughness: 0.2,
         attenuationColor: new THREE.Color("#e6d9b8"),
-        attenuationDistance: 4,
+        attenuationDistance: 2,
         envMapIntensity: 1.0,
         transparent: true,
       }),
@@ -353,24 +345,24 @@ function TrayShell() {
   return (
     <group>
       <RoundedBox
-        args={[TRAY_WIDTH, 0.12, TRAY_DEPTH]}
-        radius={0.08}
+        args={[TRAY_WIDTH, 0.06, TRAY_DEPTH]}
+        radius={0.04}
         smoothness={5}
-        position={[0, -0.02, 0]}
+        position={[0, -0.01, 0]}
         material={floorMat}
         receiveShadow
         castShadow
       />
       {[
-        { pos: [0, 0.25, TRAY_DEPTH / 2 - 0.05], size: [TRAY_WIDTH, 0.5, 0.1] },
-        { pos: [0, 0.25, -TRAY_DEPTH / 2 + 0.05], size: [TRAY_WIDTH, 0.5, 0.1] },
-        { pos: [TRAY_WIDTH / 2 - 0.05, 0.25, 0], size: [0.1, 0.5, TRAY_DEPTH - 0.2] },
-        { pos: [-TRAY_WIDTH / 2 + 0.05, 0.25, 0], size: [0.1, 0.5, TRAY_DEPTH - 0.2] },
+        { pos: [0, 0.125, TRAY_DEPTH / 2 - 0.025], size: [TRAY_WIDTH, 0.25, 0.05] },
+        { pos: [0, 0.125, -TRAY_DEPTH / 2 + 0.025], size: [TRAY_WIDTH, 0.25, 0.05] },
+        { pos: [TRAY_WIDTH / 2 - 0.025, 0.125, 0], size: [0.05, 0.25, TRAY_DEPTH - 0.1] },
+        { pos: [-TRAY_WIDTH / 2 + 0.025, 0.125, 0], size: [0.05, 0.25, TRAY_DEPTH - 0.1] },
       ].map((w, i) => (
         <RoundedBox
           key={i}
           args={w.size as [number, number, number]}
-          radius={0.04}
+          radius={0.02}
           smoothness={4}
           position={w.pos as [number, number, number]}
           material={wallMat}
@@ -407,7 +399,7 @@ function CountBadge({ count }: { count: number }) {
   if (!texture) return null;
 
   return (
-    <sprite ref={spriteRef} position={[0, CELL_WALL_H + 0.3, 0]} scale={[0.5, 0.5, 1]}>
+    <sprite ref={spriteRef} position={[0, CELL_WALL_H + 0.15, 0]} scale={[0.25, 0.25, 1]}>
       <spriteMaterial map={texture} depthTest={false} transparent />
     </sprite>
   );

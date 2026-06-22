@@ -5,6 +5,8 @@ import {
   Undo2,
   Trash2,
   Download,
+  Upload,
+  Grid3x3,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -13,16 +15,24 @@ import type { Tool } from "../types.ts";
 
 interface ToolbarProps {
   onExport: () => void;
+  onExportFlat: () => void;
+  onImportImage: () => void;
   onToggleMute: () => void;
   muted: boolean;
   exporting: boolean;
+  exportingFlat: boolean;
+  importing: boolean;
 }
 
 export function Toolbar({
   onExport,
+  onExportFlat,
+  onImportImage,
   onToggleMute,
   muted,
   exporting,
+  exportingFlat,
+  importing,
 }: ToolbarProps) {
   const tool = useBeadStore((s) => s.tool);
   const setTool = useBeadStore((s) => s.setTool);
@@ -100,9 +110,27 @@ export function Toolbar({
       <div className="w-px h-6 bg-amber-200 mx-1" />
 
       <button
+        onClick={onImportImage}
+        disabled={importing}
+        title="从图片生成拼豆"
+        className="h-10 px-3 flex items-center gap-1.5 rounded-lg bg-white text-stone-700 font-medium text-sm shadow-sm border border-amber-200 hover:bg-amber-100 hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
+      >
+        <Upload size={16} strokeWidth={2.5} />
+        {importing ? "转换中…" : "导入图片"}
+      </button>
+      <button
+        onClick={onExportFlat}
+        disabled={exportingFlat}
+        title="导出平面 PNG（每格填色，空格透明）"
+        className="h-10 px-3 flex items-center gap-1.5 rounded-lg bg-white text-stone-700 font-medium text-sm shadow-sm border border-amber-200 hover:bg-amber-100 hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
+      >
+        <Grid3x3 size={16} strokeWidth={2.5} />
+        {exportingFlat ? "导出中…" : "平面图"}
+      </button>
+      <button
         onClick={onExport}
         disabled={exporting}
-        title="导出 PNG"
+        title="导出立体效果 PNG"
         className="h-10 px-4 flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium text-sm shadow-md hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
       >
         <Download size={16} strokeWidth={2.5} />

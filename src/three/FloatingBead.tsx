@@ -2,13 +2,13 @@ import { useMemo } from "react";
 import { useStackStore } from "../store/useStackStore.ts";
 import { useGrabStore } from "../store/useGrabStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
-import { COLOR_MAP } from "../data/colors.ts";
+import { getColor } from "../data/colors.ts";
 import { createBeadGeometry, createGlassBeadMaterial } from "./materials.ts";
-import { BOARD_N, localToWorld } from "./constants.ts";
+import { BOARD_N, CELL, localToWorld } from "./constants.ts";
 import { Tweezers } from "./Tweezers.tsx";
 
 const HALF = (BOARD_N - 1) / 2;
-const BEAD_SPACING_Y = 1.3;
+const BEAD_SPACING_Y = 0.65;
 
 export function FloatingBead() {
   const stack = useStackStore((s) => s.stack);
@@ -25,8 +25,8 @@ export function FloatingBead() {
     return (colorId: string) => {
       let m = cache.get(colorId);
       if (!m) {
-        const color = COLOR_MAP[colorId];
-        m = createGlassBeadMaterial(color?.base ?? "#ffffff");
+        const color = getColor(colorId);
+        m = createGlassBeadMaterial(color.base);
         cache.set(colorId, m);
       }
       return m;
@@ -41,7 +41,11 @@ export function FloatingBead() {
   const snapped = hoveredIdx !== null;
   const col = hoveredIdx !== null ? hoveredIdx % BOARD_N : 0;
   const row = hoveredIdx !== null ? Math.floor(hoveredIdx / BOARD_N) : 0;
-  const [snappedX, snappedZ] = localToWorld(boardTransform, col - HALF, row - HALF);
+  const [snappedX, snappedZ] = localToWorld(
+    boardTransform,
+    (col - HALF) * CELL,
+    (row - HALF) * CELL
+  );
   const baseX = snapped ? snappedX : dragPos[0];
   const baseZ = snapped ? snappedZ : dragPos[2];
   const baseY = dragPos[1];

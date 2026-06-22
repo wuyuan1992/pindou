@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useBeadStore } from "../store/useBeadStore.ts";
-import { COLOR_MAP } from "../data/colors.ts";
+import { getColor } from "../data/colors.ts";
 import { createBeadGeometry, createInstancedGlassBeadMaterial } from "./materials.ts";
-import { BEAD_CENTER_Y, BOARD_N } from "./constants.ts";
+import { BEAD_CENTER_Y, BOARD_N, CELL } from "./constants.ts";
 
 interface PlacedBead {
   col: number;
@@ -26,8 +26,7 @@ export function Beads() {
     for (let i = 0; i < grid.length; i++) {
       const colorId = grid[i];
       if (!colorId) continue;
-      const color = COLOR_MAP[colorId];
-      if (!color) continue;
+      const color = getColor(colorId);
       const col = i % BOARD_N;
       const row = Math.floor(i / BOARD_N);
       result.push({ col, row, color: color.base });
@@ -40,7 +39,7 @@ export function Beads() {
     if (!mesh) return;
     const half = (BOARD_N - 1) / 2;
     placed.forEach((p, i) => {
-      dummy.position.set(p.col - half, BEAD_CENTER_Y, p.row - half);
+      dummy.position.set((p.col - half) * CELL, BEAD_CENTER_Y, (p.row - half) * CELL);
       dummy.rotation.set(-Math.PI / 2, 0, 0);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);

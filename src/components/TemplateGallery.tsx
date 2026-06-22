@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, type CSSProperties } from "react";
 import { LayoutGrid, Plus, Trash2 } from "lucide-react";
 import { useTemplatesStore } from "../store/useTemplatesStore.ts";
 import { useBeadStore } from "../store/useBeadStore.ts";
-import { COLOR_MAP } from "../data/colors.ts";
+import { getColor } from "../data/colors.ts";
 import type { Template } from "../types.ts";
 
 export function TemplateGallery() {
@@ -165,7 +165,7 @@ function TemplateCard({
           }}
         >
           {tpl.cells.map((colorId, idx) => {
-            const color = colorId ? COLOR_MAP[colorId] : null;
+            const color = colorId ? getColor(colorId) : null;
             const style: CSSProperties = {
               width: cellSize,
               height: cellSize,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, type CSSProperties } from "react";
-import { COLOR_BY_SLUG, COLOR_GROUPS, COLOR_MAP } from "../data/colors.ts";
+import { PALETTE_FAMILIES, getColor } from "../data/colors.ts";
 
 interface QuickPaletteProps {
   position: { x: number; y: number };
@@ -56,31 +56,21 @@ export function QuickPalette({
         </span>
         <span className="text-[10px] text-stone-400">右键/Esc 关闭</span>
       </div>
-      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-        {COLOR_GROUPS.map((group) => (
-          <div key={group.name}>
-            <div className="text-[10px] text-stone-400 mb-1 font-medium">
-              {group.name}
-            </div>
-            <div className="grid grid-cols-8 gap-1">
-              {group.slugs.map((slug) => {
-                const color = COLOR_BY_SLUG[slug];
-                if (!color) return null;
-                const active = color.id === currentColorId;
-                return (
-                  <button
-                    key={slug}
-                    onClick={() => {
-                      onPick(color.id);
-                      onClose();
-                    }}
-                    title={color.name}
-                    className="aspect-square rounded-full transition-transform hover:scale-110"
-                    style={swatchStyle(color.base, active)}
-                  />
-                );
-              })}
-            </div>
+      <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1 py-2">
+        {PALETTE_FAMILIES.map((family) => (
+          <div
+            key={family.name}
+            className="flex items-center justify-center gap-1"
+          >
+            {family.hexes.map((hex) => (
+              <Swatch
+                key={hex}
+                hex={hex}
+                active={hex === currentColorId}
+                onPick={onPick}
+                onClose={onClose}
+              />
+            ))}
           </div>
         ))}
       </div>
@@ -88,8 +78,34 @@ export function QuickPalette({
   );
 }
 
+function Swatch({
+  hex,
+  active,
+  onPick,
+  onClose,
+}: {
+  hex: string;
+  active: boolean;
+  onPick: (id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <button
+      onClick={() => {
+        onPick(hex);
+        onClose();
+      }}
+      title={hex}
+      className="aspect-square rounded-full transition-transform hover:scale-110"
+      style={swatchStyle(hex, active)}
+    />
+  );
+}
+
 function swatchStyle(base: string, active: boolean): CSSProperties {
   return {
+    width: 22,
+    height: 22,
     background: `radial-gradient(circle at 30% 28%, ${base} 0%, ${base} 60%, rgba(0,0,0,0.25) 100%)`,
     boxShadow: active
       ? `0 0 0 3px white, 0 0 0 5px #f59e0b, 0 2px 4px rgba(0,0,0,0.2)`
@@ -104,5 +120,5 @@ function clamp(v: number, min: number, max: number) {
 
 export function getCurrentColorName(colorId: string | null): string | null {
   if (!colorId) return null;
-  return COLOR_MAP[colorId]?.name ?? null;
+  return getColor(colorId).name;
 }

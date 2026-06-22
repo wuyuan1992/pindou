@@ -2,33 +2,38 @@ import { useRef, useState, useCallback } from "react";
 import { BeadBoard } from "./components/BeadBoard.tsx";
 import { Toolbar } from "./components/Toolbar.tsx";
 import { TemplateGallery } from "./components/TemplateGallery.tsx";
-import { exportBoardAsPng } from "./lib/exporter.ts";
+import { exportBoardAsPng, exportGridAsPng } from "./lib/exporter.ts";
+import { imageFileToTemplate } from "./lib/imageImport.ts";
+import { useBeadStore } from "./store/useBeadStore.ts";
 import { useSound } from "./hooks/useSound.ts";
-import { COLOR_MAP } from "./data/colors.ts";
+import { getColor } from "./data/colors.ts";
 import { PindouCanvas } from "./three/PindouCanvas.tsx";
 
 type ViewMode = "2d" | "3d";
 
+const FLAT_CELL_SIZE = 32;
+
 export default function App() {
   const boardRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [muted, setMuted] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingFlat, setExportingFlat] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [mode, setMode] = useState<ViewMode>("3d");
 
   const { playTick, playPlace, playGrab, playRemove } = useSound({ muted });
 
   const onPainted = useCallback(
     (colorId: string) => {
-      const color = COLOR_MAP[colorId];
-      if (color) playTick(color.hue);
+      playTick(getColor(colorId).hue);
     },
     [playTick]
   );
 
   const onPlace3D = useCallback(
     (colorId: string) => {
-      const color = COLOR_MAP[colorId];
-      if (color) playPlace(color.hue);
+      playPlace(getColor(colorId).hue);
     },
     [playPlace]
   );
@@ -67,6 +72,55 @@ export default function App() {
     }
   }, [exporting]);
 
+  const handleExportFlat = useCallback(() => {
+    if (exportingFlat) return;
+    const { grid, cols, rows } = useBeadStore.getState();
+    if (grid.every((c) => c === null)) {
+      alert("画布是空的，先画点什么吧");
+      return;
+    }
+    setExportingFlat(true);
+    try {
+      exportGridAsPng(grid, cols, rows, "pindou-flat", FLAT_CELL_SIZE);
+    } catch (err) {
+      console.error("导出失败", err);
+      alert("导出失败：" + (err as Error).message);
+    } finally {
+      setExportingFlat(false);
+    }
+  }, [exportingFlat]);
+
+  const handleImportImage = useCallback(() => {
+    if (importing) return;
+    fileInputRef.current?.click();
+  }, [importing]);
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        alert("请选择图片文件");
+        return;
+      }
+      setImporting(true);
+      try {
+        const { cols, rows, loadTemplate } = useBeadStore.getState();
+        const tpl = await imageFileToTemplate(file, cols, rows, {
+          ignoreNearWhite: true,
+        });
+        loadTemplate(tpl);
+      } catch (err) {
+        console.error("图片转换失败", err);
+        alert("图片转换失败：" + (err as Error).message);
+      } finally {
+        setImporting(false);
+      }
+    },
+    []
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
       <div className="max-w-7xl mx-auto px-4 py-6 lg:px-8 lg:py-10">
@@ -76,7 +130,7 @@ export default function App() {
               <span className="inline-block w-3 h-3 rounded-full bg-rose-500 shadow-sm" />
               <span className="inline-block w-3 h-3 rounded-full bg-amber-400 shadow-sm -ml-1.5" />
               <span className="inline-block w-3 h-3 rounded-full bg-emerald-400 shadow-sm -ml-1.5" />
-              <span className="ml-2">拼豆工作室</span>
+              <span className="ml-2">拼豆</span>
             </h1>
             <p className="text-stone-500 text-sm mt-1">
               {/* 2D 拖动绘制 · 3D 从左侧容器取豆放到钉子 · 右侧托盘暂存混合色豆 */}
@@ -85,13 +139,25 @@ export default function App() {
           <div className="flex items-center gap-1 flex-wrap">
             <Toolbar
               onExport={handleExport}
+              onExportFlat={handleExportFlat}
+              onImportImage={handleImportImage}
               onToggleMute={() => setMuted((m) => !m)}
               muted={muted}
               exporting={exporting}
+              exportingFlat={exportingFlat}
+              importing={importing}
             />
             <TemplateGallery />
           </div>
         </header>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
 
         <main className="flex flex-col items-center gap-3">
           <div
@@ -131,7 +197,7 @@ export default function App() {
             className="relative"
           >
             <BeadBoard
-              beadSize={26}
+              beadSize={13}
               exporting={exporting}
               onPainted={onPainted}
             />
@@ -143,7 +209,7 @@ export default function App() {
               display: mode === "3d" ? "block" : "none",
               cursor: "none",
             }}
-            className="w-[900px] h-[640px] rounded-xl overflow-hidden border border-amber-200/60 shadow-lg bg-[#f7eed8]"
+            className="w-[900px] h-[600px] rounded-xl overflow-hidden border border-amber-200/60 shadow-lg bg-[#f7eed8]"
           >
             <PindouCanvas
               onPlace={onPlace3D}

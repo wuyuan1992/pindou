@@ -3,7 +3,7 @@ import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useGrabStore } from "../store/useGrabStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
-import { DRAG_PLANE_Y, BOARD_N, worldToLocal } from "./constants.ts";
+import { DRAG_PLANE_Y, BOARD_N, CELL, worldToLocal } from "./constants.ts";
 
 export function MouseTracker() {
   const camera = useThree((s) => s.camera);
@@ -34,8 +34,8 @@ export function MouseTracker() {
       useGrabStore.getState().setDragPos([hit.x, hit.y, hit.z]);
       const boardTransform = useLayoutStore.getState().transforms.board;
       const [lx, lz] = worldToLocal(boardTransform, hit.x, hit.z);
-      const col = Math.round(lx + half);
-      const row = Math.round(lz + half);
+      const col = Math.round(lx / CELL + half);
+      const row = Math.round(lz / CELL + half);
       if (col < 0 || col >= BOARD_N || row < 0 || row >= BOARD_N) {
         useGrabStore.getState().setHoveredIdx(null);
         return;

@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import type { Cell, Template, Tool } from "../types.ts";
-import { COLOR_BY_SLUG } from "../data/colors.ts";
+import { DEFAULT_COLOR_ID } from "../data/colors.ts";
 import { createEmptyGrid, gridChanged, placeTemplateCentered } from "../lib/gridUtils.ts";
 
-const BOARD_COLS = 20;
-const BOARD_ROWS = 20;
+const BOARD_COLS = 40;
+const BOARD_ROWS = 40;
 const MAX_HISTORY = 50;
-const INITIAL_COLOR_ID = COLOR_BY_SLUG.cherry.id;
+const INITIAL_COLOR_ID = DEFAULT_COLOR_ID;
 
 interface BeadState {
   cols: number;

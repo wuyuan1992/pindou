@@ -11,6 +11,7 @@ import {
   BOARD_SIZE,
   BOARD_THICKNESS,
   BOARD_TOP_Y,
+  CELL,
   PEG_HEIGHT,
   PEG_RADIUS,
   worldToLocal,
@@ -19,7 +20,7 @@ import { createBoardMaterial, createGlassMaterial } from "./materials.ts";
 import { ItemHandler } from "./Handler.tsx";
 import { Beads } from "./Beads.tsx";
 
-const BOARD_SLAB = BOARD_SIZE + 0.6;
+const BOARD_SLAB = BOARD_SIZE + 0.3;
 const REPEAT_INTERVAL = 0.16;
 
 interface BoardProps {
@@ -36,10 +37,11 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
 
   const pegs = useMemo(() => {
     const arr: { pos: [number, number, number]; key: number }[] = [];
+    const half = (BOARD_N - 1) / 2;
     for (let row = 0; row < BOARD_N; row++) {
       for (let col = 0; col < BOARD_N; col++) {
-        const x = col - (BOARD_N - 1) / 2;
-        const z = row - (BOARD_N - 1) / 2;
+        const x = (col - half) * CELL;
+        const z = (row - half) * CELL;
         arr.push({
           pos: [x, BOARD_TOP_Y + PEG_HEIGHT / 2, z],
           key: row * BOARD_N + col,
@@ -159,8 +161,8 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
       <ItemHandler
         itemKey="board"
         side="bottom"
-        offset={[0, 0.5, BOARD_SLAB / 2 + 0.18]}
-        length={BOARD_SLAB - 0.3}
+        offset={[0, 0.25, BOARD_SLAB / 2 + 0.09]}
+        length={BOARD_SLAB - 0.15}
         onDoubleClick={() => useLayoutStore.getState().togglePreview()}
       />
     </group>
@@ -172,7 +174,7 @@ export type { BoardProps };
 const MAX_TILT = 0.22;
 const TILT_GAIN = 0.022;
 const TILT_LERP = 0.12;
-const PREVIEW_LIFT = 4;
+const PREVIEW_LIFT = 2;
 const LIFT_LERP = 0.1;
 
 interface BoardClusterProps {
