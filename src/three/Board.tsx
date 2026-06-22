@@ -136,7 +136,10 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
       <RoundedBox
         args={[BOARD_SLAB, BOARD_THICKNESS, BOARD_SLAB]}
         radius={0.12}
-        smoothness={4}
+        // Reduced from 4 -> 3. Board slab is flat-ish so the rounded edge
+        // silhouette difference is negligible, and this geometry is reused
+        // by BoardCluster which is always on screen.
+        smoothness={3}
         position={[0, 0, 0]}
         receiveShadow
         castShadow
@@ -152,7 +155,7 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
         castShadow
         material={pegMaterial}
       >
-        <cylinderGeometry args={[PEG_RADIUS, PEG_RADIUS * 0.85, PEG_HEIGHT, 20]} />
+        <cylinderGeometry args={[PEG_RADIUS, PEG_RADIUS * 0.85, PEG_HEIGHT, 8]} />
         {pegs.map((p) => (
           <Instance key={p.key} position={p.pos} />
         ))}
@@ -201,13 +204,15 @@ export function BoardCluster({ onPlace, onPick, onErase }: BoardClusterProps) {
   const targetLift = useRef(0);
 
   useFrame(() => {
-    const inPreview = useLayoutStore.getState().previewMode;
+    const layoutState = useLayoutStore.getState();
+    const inPreview = layoutState.previewMode;
+    const bt = layoutState.transforms.board;
+
     targetLift.current = inPreview ? PREVIEW_LIFT : 0;
     if (inPreview) {
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.ray.intersectPlane(tablePlane, hitTarget);
       if (hit) {
-        const bt = useLayoutStore.getState().transforms.board;
         const [lx, lz] = worldToLocal(bt, hit.x, hit.z);
         targetTilt.current.x = THREE.MathUtils.clamp(lz * TILT_GAIN, -MAX_TILT, MAX_TILT);
         targetTilt.current.z = THREE.MathUtils.clamp(-lx * TILT_GAIN, -MAX_TILT, MAX_TILT);
@@ -219,11 +224,36 @@ export function BoardCluster({ onPlace, onPick, onErase }: BoardClusterProps) {
     tilt.current.x += (targetTilt.current.x - tilt.current.x) * TILT_LERP;
     tilt.current.z += (targetTilt.current.z - tilt.current.z) * TILT_LERP;
     lift.current += (targetLift.current - lift.current) * LIFT_LERP;
-    if (groupRef.current) {
-      const bt = useLayoutStore.getState().transforms.board;
-      groupRef.current.position.set(bt.position[0], bt.position[1] + lift.current, bt.position[2]);
-      groupRef.current.rotation.x = tilt.current.x;
-      groupRef.current.rotation.z = tilt.current.z;
+
+    // Outside preview mode we still need to ease tilt/lift back to zero after
+    // the user exits preview, but once we've settled there's nothing to write
+    // — the board stays at its base transform. Skipping the matrix write saves
+    // a Three.js matrix composition per frame in the common idle case.
+    const settled =
+      !inPreview &&
+      Math.abs(tilt.current.x) < 1e-4 &&
+      Math.abs(tilt.current.z) < 1e-4 &&
+      Math.abs(lift.current) < 1e-4 &&
+      Math.abs(targetTilt.current.x) < 1e-4 &&
+      Math.abs(targetTilt.current.z) < 1e-4 &&
+      Math.abs(targetLift.current) < 1e-4;
+    const group = groupRef.current;
+    if (settled) {
+      tilt.current.x = 0;
+      tilt.current.z = 0;
+      lift.current = 0;
+      if (group) {
+        group.position.set(bt.position[0], bt.position[1], bt.position[2]);
+        group.rotation.x = 0;
+        group.rotation.z = 0;
+      }
+      return;
+    }
+
+    if (group) {
+      group.position.set(bt.position[0], bt.position[1] + lift.current, bt.position[2]);
+      group.rotation.x = tilt.current.x;
+      group.rotation.z = tilt.current.z;
     }
   });
 

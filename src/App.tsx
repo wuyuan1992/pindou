@@ -197,35 +197,37 @@ export default function App() {
             </button>
           </div>
 
-          <div
-            ref={boardRef}
-            style={{ display: mode === "2d" ? "block" : "none" }}
-            className="relative"
-          >
-            <BeadBoard
-              beadSize={13}
-              exporting={exporting}
-              onPainted={onPainted}
-            />
-          </div>
+          {mode === "2d" && (
+            <div
+              ref={boardRef}
+              className="relative"
+            >
+              <BeadBoard
+                beadSize={13}
+                exporting={exporting}
+                onPainted={onPainted}
+              />
+            </div>
+          )}
 
-          <div
-            aria-label="拼豆 3D 创作画布"
-            style={{
-              display: mode === "3d" ? "block" : "none",
-              cursor: "none",
-            }}
-            className="w-[900px] h-[600px] rounded-xl overflow-hidden border border-amber-200/60 shadow-lg bg-[#f7eed8]"
-          >
-            <PindouCanvas
-              onPlace={onPlace3D}
-              onPick={onPick3D}
-              onErase={onErase3D}
-              onPickBead={onPickBead3D}
-              onTrayDrop={onTrayDrop3D}
-              onTrayPick={onTrayPick3D}
-            />
-          </div>
+          {mode === "3d" && (
+            <div
+              aria-label="拼豆 3D 创作画布"
+              style={{
+                cursor: "none",
+              }}
+              className="w-[900px] h-[600px] rounded-xl overflow-hidden border border-amber-200/60 shadow-lg bg-[#f7eed8]"
+            >
+              <PindouCanvas
+                onPlace={onPlace3D}
+                onPick={onPick3D}
+                onErase={onErase3D}
+                onPickBead={onPickBead3D}
+                onTrayDrop={onTrayDrop3D}
+                onTrayPick={onTrayPick3D}
+              />
+            </div>
+          )}
         </main>
 
         <footer className="mt-8 text-center text-xs text-stone-400 space-y-1">

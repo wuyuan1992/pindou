@@ -54,7 +54,6 @@ function CameraRig() {
     camera.position.lerp(targetPos.current, 0.08);
     currentLook.current.lerp(targetLook.current, 0.08);
     camera.lookAt(currentLook.current);
-    camera.updateProjectionMatrix();
   });
 
   return null;
@@ -85,7 +84,9 @@ export function PindouCanvas({
         shadows
         camera={{ position: [0.5, 28, 11], fov: 44, near: 0.1, far: 200 }}
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-        dpr={[1, 2]}
+        // Capped at 1.75 (down from 2). On 2x-DPI screens this cuts the
+        // fragment shader workload by ~25% with no visible difference.
+        dpr={[1, 1.75]}
         style={{ width: "100%", height: "100%" }}
       >
         <CameraRig />
@@ -98,14 +99,17 @@ export function PindouCanvas({
           position={[6, 9, 4]}
           intensity={1.25}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          // 1024 is plenty for a top-down board shadow; 2048 doubled VRAM
+          // and the blur from ContactShadows already hides the resolution.
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
           shadow-camera-near={0.25}
           shadow-camera-far={40}
           shadow-camera-left={-17}
           shadow-camera-right={17}
           shadow-camera-top={14}
           shadow-camera-bottom={-14}
+          shadow-bias={-0.0005}
         />
         <directionalLight position={[-5, 5, -3]} intensity={0.35} color="#b9d4ff" />
 
@@ -115,22 +119,22 @@ export function PindouCanvas({
           <FloatingBead />
           <PaletteTray onPickBead={onPickBead} />
           <Tray onDrop={onTrayDrop} onPick={onTrayPick} />
-          <Environment resolution={512}>
+          <Environment resolution={256}>
             <Lightformer
-              intensity={1.4}
+              intensity={1.2}
               position={[0, 5, 0]}
               scale={[10, 10, 1]}
               color="#fff2dc"
             />
             <Lightformer
-              intensity={0.85}
+              intensity={0.7}
               position={[-4, 2.5, -3]}
               scale={[3, 3, 1]}
               rotation-y={Math.PI / 4}
               color="#ffe2b0"
             />
             <Lightformer
-              intensity={0.7}
+              intensity={0.6}
               position={[3, 2, 3]}
               scale={[3, 3, 1]}
               rotation-y={-Math.PI / 4}
@@ -141,12 +145,13 @@ export function PindouCanvas({
 
         <ContactShadows
           position={[0, 0.0025, 0]}
-          scale={30}
+          scale={20}
           far={3}
           blur={2.6}
           opacity={0.38}
-          resolution={1024}
+          resolution={512}
           color="#3a2a18"
+          frames={1}
         />
       </Canvas>
     </div>

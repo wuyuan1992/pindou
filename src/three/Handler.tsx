@@ -14,6 +14,16 @@ interface ItemHandlerProps {
   onDoubleClick?: () => void;
 }
 
+// Shared across every ItemHandler instance. The two end caps are visually
+// static, so deduplicating the material saves GPU state switches when the
+// board, palette and tray handlers are all in frame at once.
+const SHARED_CAP_MATERIAL = new THREE.MeshStandardMaterial({
+  color: new THREE.Color("#c9a675"),
+  metalness: 0.92,
+  roughness: 0.28,
+  envMapIntensity: 1.2,
+});
+
 const TABLE_BOUNDS = { minX: -9.5, maxX: 9.5, minZ: -7, maxZ: 7 };
 
 export function ItemHandler({
@@ -172,36 +182,17 @@ export function ItemHandler({
         onPointerOut={handlePointerOut}
         castShadow
       >
-        <meshPhysicalMaterial
+        <meshStandardMaterial
           color={isDragging ? "#f6c168" : hovered ? "#d4af7f" : "#8a6b3f"}
           metalness={0.95}
-          roughness={0.22}
-          clearcoat={1.0}
-          clearcoatRoughness={0.1}
-          reflectivity={0.8}
-          envMapIntensity={1.8}
+          roughness={0.26}
+          envMapIntensity={1.4}
           emissive={isDragging ? "#6b4a1a" : "#000000"}
           emissiveIntensity={isDragging ? 0.4 : 0}
         />
       </RoundedBox>
-      <RoundedBox args={capSize} radius={0.04} smoothness={3} position={capPos1} castShadow>
-        <meshPhysicalMaterial
-          color="#c9a675"
-          metalness={0.92}
-          roughness={0.28}
-          clearcoat={0.8}
-          envMapIntensity={1.4}
-        />
-      </RoundedBox>
-      <RoundedBox args={capSize} radius={0.04} smoothness={3} position={capPos2} castShadow>
-        <meshPhysicalMaterial
-          color="#c9a675"
-          metalness={0.92}
-          roughness={0.28}
-          clearcoat={0.8}
-          envMapIntensity={1.4}
-        />
-      </RoundedBox>
+      <RoundedBox args={capSize} radius={0.04} smoothness={3} position={capPos1} material={SHARED_CAP_MATERIAL} castShadow />
+      <RoundedBox args={capSize} radius={0.04} smoothness={3} position={capPos2} material={SHARED_CAP_MATERIAL} castShadow />
     </group>
   );
 }

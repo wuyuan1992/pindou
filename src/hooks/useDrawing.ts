@@ -59,6 +59,7 @@ export function useDrawing(options: DrawingOptions = {}) {
     handle(idx);
   };
 
+  // 旧 DOM 版：依赖 elementFromPoint + data-cell-idx
   const onTouchMove = (e: React.TouchEvent) => {
     if (!isDrawing.current) return;
     const t = e.touches[0];
@@ -71,6 +72,11 @@ export function useDrawing(options: DrawingOptions = {}) {
     }
   };
 
-  return { onCellDown, onCellEnter, onTouchMove };
-}
+  // 新 canvas 版：上层已经做好 hit-test，直接传入 idx
+  const onTouchHit = (idx: number) => {
+    if (!isDrawing.current) return;
+    handle(idx);
+  };
 
+  return { onCellDown, onCellEnter, onTouchMove, onTouchHit };
+}
