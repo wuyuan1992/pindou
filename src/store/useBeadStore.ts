@@ -15,6 +15,7 @@ interface BeadState {
   currentColorId: string;
   tool: Tool;
   history: Cell[][];
+  redoStack: Cell[][];
   strokeSnapshot: Cell[] | null;
 
   beginStroke: () => void;
@@ -26,6 +27,7 @@ interface BeadState {
   loadTemplate: (tpl: Template) => void;
   clear: () => void;
   undo: () => void;
+  redo: () => void;
 
   placeBead: (idx: number, colorId: string) => boolean;
   removeBead: (idx: number) => boolean;
@@ -44,6 +46,7 @@ export const useBeadStore = create<BeadState>()((set, get) => ({
   currentColorId: INITIAL_COLOR_ID,
   tool: "brush",
   history: [],
+  redoStack: [],
   strokeSnapshot: null,
 
   beginStroke: () => {
@@ -56,7 +59,7 @@ export const useBeadStore = create<BeadState>()((set, get) => ({
     const { strokeSnapshot, grid, history } = get();
     if (!strokeSnapshot) return;
     if (gridChanged(strokeSnapshot, grid)) {
-      set({ history: pushHistory(history, strokeSnapshot), strokeSnapshot: null });
+      set({ history: pushHistory(history, strokeSnapshot), strokeSnapshot: null, redoStack: [] });
     } else {
       set({ strokeSnapshot: null });
     }
@@ -89,7 +92,7 @@ export const useBeadStore = create<BeadState>()((set, get) => ({
     const { cols, rows, grid, history } = get();
     const newGrid = placeTemplateCentered(tpl, cols, rows);
     if (!gridChanged(grid, newGrid)) return;
-    set({ grid: newGrid, history: pushHistory(history, grid.slice()) });
+    set({ grid: newGrid, history: pushHistory(history, grid.slice()), redoStack: [] });
   },
 
   clear: () => {
@@ -99,15 +102,32 @@ export const useBeadStore = create<BeadState>()((set, get) => ({
     set({
       grid: createEmptyGrid(cols, rows),
       history: pushHistory(history, grid.slice()),
+      redoStack: [],
     });
   },
 
   undo: () => {
-    const { history, strokeSnapshot } = get();
+    const { history, redoStack, strokeSnapshot, grid } = get();
     if (strokeSnapshot) return;
     if (history.length === 0) return;
     const prev = history[history.length - 1];
-    set({ grid: prev.slice(), history: history.slice(0, -1) });
+    set({
+      grid: prev.slice(),
+      history: history.slice(0, -1),
+      redoStack: [...redoStack, grid.slice()],
+    });
+  },
+
+  redo: () => {
+    const { history, redoStack, strokeSnapshot, grid } = get();
+    if (strokeSnapshot) return;
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    set({
+      grid: next.slice(),
+      redoStack: redoStack.slice(0, -1),
+      history: pushHistory(history, grid.slice()),
+    });
   },
 
   placeBead: (idx, colorId) => {
@@ -116,7 +136,7 @@ export const useBeadStore = create<BeadState>()((set, get) => ({
     if (grid[idx] === colorId) return false;
     const newGrid = grid.slice();
     newGrid[idx] = colorId;
-    set({ grid: newGrid, history: pushHistory(history, grid.slice()) });
+    set({ grid: newGrid, history: pushHistory(history, grid.slice()), redoStack: [] });
     return true;
   },
 
@@ -126,7 +146,7 @@ export const useBeadStore = create<BeadState>()((set, get) => ({
     if (grid[idx] === null) return false;
     const newGrid = grid.slice();
     newGrid[idx] = null;
-    set({ grid: newGrid, history: pushHistory(history, grid.slice()) });
+    set({ grid: newGrid, history: pushHistory(history, grid.slice()), redoStack: [] });
     return true;
   },
 }));
