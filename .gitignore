@@ -29,3 +29,4 @@ dist-ssr
 
 # System
 Thumbs.db
+.env

@@ -11,6 +11,7 @@ import { useSound } from "./hooks/useSound.ts";
 import { useIsMobile } from "./hooks/useMediaQuery.ts";
 import { getColor } from "./data/colors.ts";
 import { PindouCanvas } from "./three/PindouCanvas.tsx";
+import { StoreLocation } from "./components/StoreLocation.tsx";
 
 type ViewMode = "2d" | "3d";
 
@@ -29,6 +30,7 @@ export default function App() {
   const [mode, setMode] = useState<ViewMode>("3d");
   const [beadSize, setBeadSize] = useState(DEFAULT_BEAD_SIZE);
   const [notice, setNotice] = useState<string | null>(null);
+  const [storeOpen, setStoreOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // 2D 画布 beadSize 自适应：测量可用宽度，按 cols 等分，夹在 [MIN, DEFAULT]。
@@ -168,6 +170,7 @@ export default function App() {
               在线拼豆画 / 3D 像素画创作工具 · 图片一键转拼豆图案
             </p>
           </div>
+          <StoreLocation onOpenChange={setStoreOpen} />
         </header>
 
         <input
@@ -244,15 +247,15 @@ export default function App() {
         </footer>
       </div>
 
-      {/* 画板下方：编辑 + 历史/重置 + 静音 */}
+      {/* 画板下方：编辑 + 历史/重置 + 静音（门店弹窗打开时隐藏） */}
       <div
-        className="fixed bottom-0 inset-x-0 z-40"
+        className={`fixed bottom-0 inset-x-0 z-40 ${storeOpen ? "hidden" : ""}`}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <EditToolbar muted={muted} onToggleMute={() => setMuted((m) => !m)} />
       </div>
 
-      {mode === "3d" && <PreviewToggleButton />}
+      {mode === "3d" && !storeOpen && <PreviewToggleButton />}
 
       <Modal
         open={notice !== null}
