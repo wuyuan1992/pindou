@@ -27,6 +27,10 @@ export const GRID_PITCH = CELL;
 
 export const BOARD_TRANSFORM = DEFAULT_TRANSFORMS.board;
 
+// THREE.js right-handed Y rotation:
+//   world.x = lx * cos(θ) + lz * sin(θ)
+//   world.z = -lx * sin(θ) + lz * cos(θ)
+// (verified against THREE.Matrix4().makeRotationY)
 export function localToWorld(
   transform: ItemTransform,
   lx: number,
@@ -35,8 +39,8 @@ export function localToWorld(
   const c = Math.cos(transform.rotationY);
   const s = Math.sin(transform.rotationY);
   return [
-    lx * c - lz * s + transform.position[0],
-    lx * s + lz * c + transform.position[2],
+    lx * c + lz * s + transform.position[0],
+    -lx * s + lz * c + transform.position[2],
   ];
 }
 
@@ -45,10 +49,11 @@ export function worldToLocal(
   wx: number,
   wz: number
 ): [number, number] {
-  const c = Math.cos(-transform.rotationY);
-  const s = Math.sin(-transform.rotationY);
+  const c = Math.cos(transform.rotationY);
+  const s = Math.sin(transform.rotationY);
   const dx = wx - transform.position[0];
   const dz = wz - transform.position[2];
+  // inverse of localToWorld: lx = dx*c - dz*s, lz = dx*s + dz*c
   return [dx * c - dz * s, dx * s + dz * c];
 }
 

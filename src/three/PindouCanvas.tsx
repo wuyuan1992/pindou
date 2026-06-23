@@ -1,14 +1,11 @@
-import { Suspense, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { Suspense, useEffect, useRef, type CSSProperties } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, ContactShadows, Lightformer } from "@react-three/drei";
+import { Environment, Lightformer } from "@react-three/drei";
 import * as THREE from "three";
 import { BoardCluster, type BoardProps } from "./Board.tsx";
 import { MouseTracker } from "./MouseTracker.tsx";
 import { FloatingBead } from "./FloatingBead.tsx";
-import { PaletteTray } from "./PaletteTray.tsx";
-import { Tray } from "./Tray.tsx";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
-import { createTableMaterial } from "./materials.ts";
 
 interface PindouCanvasProps {
   className?: string;
@@ -17,13 +14,10 @@ interface PindouCanvasProps {
   onPlace?: BoardProps["onPlace"];
   onPick?: BoardProps["onPick"];
   onErase?: BoardProps["onErase"];
-  onPickBead?: (colorId: string) => void;
-  onTrayDrop?: (colorId: string) => void;
-  onTrayPick?: (colorId: string) => void;
 }
 
-const DEFAULT_CAM_POS = new THREE.Vector3(0.5, 28, 11);
-const DEFAULT_CAM_LOOK = new THREE.Vector3(0.5, 0, 0);
+const DEFAULT_CAM_POS = new THREE.Vector3(0, 27, 10.5);
+const DEFAULT_CAM_LOOK = new THREE.Vector3(0, 0, 0);
 const PREVIEW_CAM_HEIGHT = 22;
 const PREVIEW_BOARD_LIFT = 2;
 
@@ -60,15 +54,6 @@ function CameraRig() {
   return null;
 }
 
-function Table() {
-  const material = useMemo(() => createTableMaterial(), []);
-  return (
-    <mesh position={[0, -0.03, 0]} material={material} receiveShadow>
-      <boxGeometry args={[34, 0.06, 22]} />
-    </mesh>
-  );
-}
-
 export function PindouCanvas({
   className,
   style,
@@ -76,9 +61,6 @@ export function PindouCanvas({
   onPlace,
   onPick,
   onErase,
-  onPickBead,
-  onTrayDrop,
-  onTrayPick,
 }: PindouCanvasProps) {
   return (
     <div
@@ -95,41 +77,25 @@ export function PindouCanvas({
     >
       <Canvas
         shadows
-        camera={{ position: [0.5, 28, 11], fov: 44, near: 0.1, far: 200 }}
-        gl={{ preserveDrawingBuffer: true, antialias: true }}
+        camera={{ position: [0, 27, 10.5], fov: 42, near: 0.1, far: 200 }}
+        gl={{ preserveDrawingBuffer: true, antialias: true, alpha: true }}
         dpr={dpr}
         style={{ width: "100%", height: "100%" }}
       >
         <CameraRig />
         <MouseTracker />
-        <color attach="background" args={["#f3ead6"]} />
 
-        <ambientLight intensity={0.55} />
-        <hemisphereLight args={["#fff5e0", "#d8c394", 0.55]} />
+        <ambientLight intensity={0.6} />
+        <hemisphereLight args={["#ffffff", "#e8e8e8", 0.55]} />
         <directionalLight
           position={[6, 9, 4]}
           intensity={1.25}
-          castShadow
-          // 1024 is plenty for a top-down board shadow; 2048 doubled VRAM
-          // and the blur from ContactShadows already hides the resolution.
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
-          shadow-camera-near={0.25}
-          shadow-camera-far={40}
-          shadow-camera-left={-17}
-          shadow-camera-right={17}
-          shadow-camera-top={14}
-          shadow-camera-bottom={-14}
-          shadow-bias={-0.0005}
         />
         <directionalLight position={[-5, 5, -3]} intensity={0.35} color="#b9d4ff" />
 
         <Suspense fallback={null}>
-          <Table />
           <BoardCluster onPlace={onPlace} onPick={onPick} onErase={onErase} />
           <FloatingBead />
-          <PaletteTray onPickBead={onPickBead} />
-          <Tray onDrop={onTrayDrop} onPick={onTrayPick} />
           <Environment resolution={256}>
             <Lightformer
               intensity={1.2}
@@ -153,17 +119,6 @@ export function PindouCanvas({
             />
           </Environment>
         </Suspense>
-
-        <ContactShadows
-          position={[0, 0.0025, 0]}
-          scale={20}
-          far={3}
-          blur={2.6}
-          opacity={0.38}
-          resolution={512}
-          color="#3a2a18"
-          frames={1}
-        />
       </Canvas>
     </div>
   );

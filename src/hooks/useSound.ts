@@ -4,8 +4,13 @@ export interface SoundOptions {
   muted: boolean;
 }
 
+const PLACE_THROTTLE_MS = 80;
+const REMOVE_THROTTLE_MS = 80;
+
 export function useSound({ muted }: SoundOptions) {
   const ctxRef = useRef<AudioContext | null>(null);
+  const lastPlaceRef = useRef(0);
+  const lastRemoveRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -48,6 +53,9 @@ export function useSound({ muted }: SoundOptions) {
   }
 
   function playPlace(hue: number) {
+    const wallNow = performance.now();
+    if (wallNow - lastPlaceRef.current < PLACE_THROTTLE_MS) return;
+    lastPlaceRef.current = wallNow;
     const ctx = ensureCtx();
     if (!ctx) return;
     const now = ctx.currentTime;
@@ -85,6 +93,9 @@ export function useSound({ muted }: SoundOptions) {
   }
 
   function playRemove() {
+    const wallNow = performance.now();
+    if (wallNow - lastRemoveRef.current < REMOVE_THROTTLE_MS) return;
+    lastRemoveRef.current = wallNow;
     const ctx = ensureCtx();
     if (!ctx) return;
     const now = ctx.currentTime;

@@ -62,3 +62,28 @@ button {
 .amap-container {
   height: 100%;
 }
+
+/* 颜色选择器 chip:悬停时彩虹环缓慢旋转,暗示可点击 */
+@keyframes rainbow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rainbow-chip {
+  background-size: 100% 100%;
+}
+
+.rainbow-chip:hover {
+  animation: rainbow-spin 4s linear infinite;
+}
+
+.rainbow-chip > span {
+  transition: transform 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rainbow-chip:hover {
+    animation: none;
+  }
+}

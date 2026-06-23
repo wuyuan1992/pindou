@@ -1,13 +1,16 @@
 import { useRef, useState, useCallback, useEffect } from "react";
+import { HelpCircle } from "lucide-react";
 import { BeadBoard } from "./components/BeadBoard.tsx";
-import { ViewModeTab, FileToolbar, EditToolbar } from "./components/Toolbar.tsx";
+import { ViewModeTab, FileToolbar } from "./components/Toolbar.tsx";
+import { Hotbar } from "./components/Hotbar.tsx";
 import { TemplateGallery } from "./components/TemplateGallery.tsx";
 import { Modal } from "./components/Modal.tsx";
+import { Onboarding } from "./components/Onboarding.tsx";
 import { exportBoardAsPng, exportGridAsPng } from "./lib/exporter.ts";
 import { imageFileToTemplate } from "./lib/imageImport.ts";
 import { useBeadStore } from "./store/useBeadStore.ts";
-import { useLayoutStore } from "./store/useLayoutStore.ts";
 import { useSound } from "./hooks/useSound.ts";
+import { useHotbarShortcuts } from "./hooks/useHotbarShortcuts.ts";
 import { useIsMobile } from "./hooks/useMediaQuery.ts";
 import { getColor } from "./data/colors.ts";
 import { PindouCanvas } from "./three/PindouCanvas.tsx";
@@ -30,11 +33,34 @@ export default function App() {
   const [mode, setMode] = useState<ViewMode>("2d");
   const [beadSize, setBeadSize] = useState(DEFAULT_BEAD_SIZE);
   const [notice, setNotice] = useState<string | null>(null);
-  const [storeOpen, setStoreOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const isMobile = useIsMobile();
+  useHotbarShortcuts();
 
   // 2D 画布 beadSize 自适应：按容器较小边等比例缩放，画板（含 padding）刚好填满容器。
   // pad = beadSize * 0.4 两侧共 0.8，所以画板占 beadSize * (cols + 0.8)。
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (window.localStorage.getItem("beidou_onboarded") !== "v3") {
+        // 等目标元素挂载后再开
+        const t = window.setTimeout(() => setOnboardingOpen(true), 400);
+        return () => window.clearTimeout(t);
+      }
+    } catch {
+      // localStorage 不可用时静默跳过
+    }
+  }, []);
+
+  const handleOnboardingClose = useCallback(() => {
+    try {
+      window.localStorage.setItem("beidou_onboarded", "v3");
+    } catch {
+      // ignore
+    }
+    setOnboardingOpen(false);
+  }, []);
+
   useEffect(() => {
     const el = measureRef.current;
     if (!el) return;
@@ -73,21 +99,11 @@ export default function App() {
     playGrab();
   }, [playGrab]);
 
-  const onPickBead3D = useCallback(() => {
-    playGrab();
-  }, [playGrab]);
-
-  const onTrayDrop3D = useCallback(() => {
-    playPlace(220);
-  }, [playPlace]);
-
-  const onTrayPick3D = useCallback(() => {
-    playGrab();
-  }, [playGrab]);
-
   const onErase3D = useCallback(() => {
     playRemove();
   }, [playRemove]);
+
+  // 旧 PaletteTray/Tray 回调已废弃(v3.1 §5 改纯视觉回收站)
 
   const handleExport = useCallback(async () => {
     if (!boardRef.current || exporting) return;
@@ -173,7 +189,17 @@ export default function App() {
               在线拼豆画 / 3D 像素画创作工具 · 图片一键转拼豆图案
             </p>
           </div>
-          <StoreLocation onOpenChange={setStoreOpen} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setOnboardingOpen(true)}
+              aria-label="打开使用引导"
+              title="使用引导"
+              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg text-stone-600 hover:bg-amber-100 transition-colors shrink-0"
+            >
+              <HelpCircle size={20} strokeWidth={2.2} />
+            </button>
+            <StoreLocation />
+          </div>
         </header>
 
         <input
@@ -184,23 +210,55 @@ export default function App() {
           className="hidden"
         />
 
-        {/* 画板上方：左 2D/3D 切换 + 右 导入/导出/模板 */}
-        <div className="flex items-center justify-between gap-2 mb-2 md:mb-3 shrink-0">
-          <ViewModeTab mode={mode} onModeChange={setMode} />
-          <FileToolbar
-            onExport={handleExport}
-            onExportFlat={handleExportFlat}
-            onImportImage={handleImportImage}
-            exporting={exporting}
-            exportingFlat={exportingFlat}
-            importing={importing}
+        <main
+          id="main"
+          className={`relative flex-1 min-h-0 flex flex-col ${
+            mode === "3d" ? "max-md:pb-24" : ""
+          }`}
+        >
+          {/* toolbar 行:3D 模式下悬浮在透明全屏 Canvas 之上(absolute + backdrop-blur + z-10),
+              定位上下文为本 main 元素(不含 Header)。
+              Hotbar 在移动端单独 fixed 到底,桌面端留在行内。 */}
+          <div
+            className={`flex items-center gap-2 mb-2 md:mb-3 pt-2 md:pt-0 shrink-0 ${
+              mode === "3d"
+                ? "absolute top-0 left-0 right-0 z-10 mx-2 md:mx-8 px-2 md:px-0 pt-3 md:pt-6 pb-2 md:pb-2 bg-white/70 backdrop-blur-md rounded-b-xl"
+                : "bg-transparent"
+            }`}
           >
-            <TemplateGallery />
-          </FileToolbar>
-        </div>
+            <ViewModeTab mode={mode} onModeChange={setMode} />
+            <div className="hidden md:flex flex-1 min-w-0 justify-center">
+              <Hotbar
+                viewMode={mode}
+                muted={muted}
+                onToggleMute={() => setMuted((m) => !m)}
+              />
+            </div>
+            <FileToolbar
+              onExport={handleExport}
+              onExportFlat={handleExportFlat}
+              onImportImage={handleImportImage}
+              exporting={exporting}
+              exportingFlat={exportingFlat}
+              importing={importing}
+            >
+              <TemplateGallery />
+            </FileToolbar>
+          </div>
 
-        <main id="main" className="flex-1 min-h-0 pb-20 md:pb-15 grid items-stretch">
-          <div ref={measureRef} className="w-full h-full flex justify-center items-center min-h-full max-h-full">
+          {/* Hotbar:移动端单独 fixed 到底部,桌面端在上方 toolbar 行内(此处不渲染) */}
+          <div className="md:hidden max-md:fixed max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:z-30 max-md:pb-[env(safe-area-inset-bottom)] max-md:px-2 flex justify-center">
+            <Hotbar
+              viewMode={mode}
+              muted={muted}
+              onToggleMute={() => setMuted((m) => !m)}
+            />
+          </div>
+
+          <div
+            ref={measureRef}
+            className="relative w-full flex-1 min-h-0 flex justify-center items-center"
+          >
             {mode === "2d" && (
               <div
                 ref={boardRef}
@@ -221,32 +279,19 @@ export default function App() {
                 style={{
                   cursor: isMobile ? "auto" : "none",
                 }}
-                className="w-full h-full md:h-[600px] md:max-w-[1216px] rounded-xl overflow-hidden border border-amber-200/60 shadow-lg bg-[#f7eed8]"
+                className="absolute inset-0 w-full h-full"
               >
                 <PindouCanvas
                   dpr={isMobile ? [1, 1.5] : [1, 1.75]}
                   onPlace={onPlace3D}
                   onPick={onPick3D}
                   onErase={onErase3D}
-                  onPickBead={onPickBead3D}
-                  onTrayDrop={onTrayDrop3D}
-                  onTrayPick={onTrayPick3D}
                 />
               </div>
             )}
           </div>
         </main>
       </div>
-
-      {/* 画板下方：编辑 + 历史/重置 + 静音（门店弹窗打开时隐藏） */}
-      <div
-        className={`fixed bottom-0 inset-x-0 z-40 ${storeOpen ? "hidden" : ""}`}
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <EditToolbar muted={muted} onToggleMute={() => setMuted((m) => !m)} />
-      </div>
-
-      {mode === "3d" && !storeOpen && <PreviewToggleButton />}
 
       <Modal
         open={notice !== null}
@@ -256,23 +301,8 @@ export default function App() {
         confirmText="知道了"
         onConfirm={() => setNotice(null)}
       />
-    </div>
-  );
-}
 
-function PreviewToggleButton() {
-  const previewMode = useLayoutStore((s) => s.previewMode);
-  const togglePreview = useLayoutStore((s) => s.togglePreview);
-  return (
-    <button
-      onClick={togglePreview}
-      className={`md:hidden fixed right-3 bottom-24 z-30 px-3 py-2 rounded-full text-xs font-medium shadow-lg transition-colors ${
-        previewMode
-          ? "bg-amber-500 text-white"
-          : "bg-white/90 text-stone-700 border border-amber-200"
-      }`}
-    >
-      {previewMode ? "退出预览" : "预览"}
-    </button>
+      <Onboarding open={onboardingOpen} onClose={handleOnboardingClose} />
+    </div>
   );
 }

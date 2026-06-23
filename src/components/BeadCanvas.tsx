@@ -1,6 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import { useBeadStore } from "../store/useBeadStore.ts";
-import { useLongPress } from "../hooks/useLongPress.ts";
 import { getColor } from "../data/colors.ts";
 import {
   drawCell,
@@ -46,6 +45,7 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
     const gridSnapRef = useRef<(string | null)[] | null>(null);
     const hoverIdxRef = useRef<number | null>(null);
     const rafRef = useRef<number | null>(null);
+    const moveStartTsRef = useRef<number>(0);
 
     // ------- 底图绘制 -------
     const fullRepaintBase = useCallback(() => {
@@ -100,13 +100,18 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
     // grid 变化时 diff 重绘底图
     useEffect(() => {
       const prev = gridSnapRef.current;
+      const t0 = performance.now();
       if (prev == null) {
         fullRepaintBase();
       } else if (prev !== grid) {
         repaintDirty(prev, grid);
         gridSnapRef.current = grid.slice();
       }
+      const t1 = performance.now();
       scheduleComposite();
+      if (t1 - t0 > 8) {
+        console.log(`[pd] grid-effect repaint=${(t1 - t0).toFixed(1)}ms`);
+      }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [grid, fullRepaintBase, repaintDirty]);
 
@@ -119,6 +124,7 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
       if (!canvas || !base) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+      const t0 = performance.now();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const cssW = cols * beadSize;
       const cssH = rows * beadSize;
@@ -138,6 +144,15 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
         const c = hi % cols;
         const r = Math.floor(hi / cols);
         drawHoverPreview(ctx, c * beadSize, r * beadSize, beadSize, color);
+      }
+      const t1 = performance.now();
+      const ms = moveStartTsRef.current;
+      if (ms > 0) {
+        moveStartTsRef.current = 0;
+        const total = t1 - ms;
+        if (total > 60) {
+          console.log(`[pd] move->paint ${total.toFixed(1)}ms (composite=${(t1 - t0).toFixed(1)}ms)`);
+        }
       }
     }, [cols, rows, beadSize, currentColorId, exporting]);
 
@@ -180,28 +195,89 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
       [beadSize, cols, rows]
     );
 
+    // ------- 拖动状态 -------
+    // 拖动期间 isDraggingRef=true，pointermove/up 走 window 全局 listener，
+    // 不依赖 React 合成事件分发，延迟最低；同时统一处理 mouse 与 touch。
+    const isDraggingRef = useRef(false);
+    const dragListenersRef = useRef<(() => void) | null>(null);
+
+    const detachDragListeners = useCallback(() => {
+      dragListenersRef.current?.();
+      dragListenersRef.current = null;
+    }, []);
+
+    const stopDrag = useCallback(() => {
+      isDraggingRef.current = false;
+      detachDragListeners();
+    }, [detachDragListeners]);
+
+    const startDrag = useCallback(() => {
+      isDraggingRef.current = true;
+      detachDragListeners();
+
+      const onMove = (ev: PointerEvent) => {
+        if (!isDraggingRef.current) return;
+        const idx = hitTest(ev.clientX, ev.clientY);
+        if (idx >= 0) {
+          hoverIdxRef.current = idx;
+          moveStartTsRef.current = performance.now();
+          onCellEnter?.(idx);
+          scheduleComposite();
+        }
+      };
+      const onUp = () => {
+        // 抬起时 useDrawing 的 window mouseup/touchend 会 stop，
+        // 这里只清理本地 listener。
+        stopDrag();
+      };
+      const onCancel = () => stopDrag();
+
+      window.addEventListener("pointermove", onMove, { passive: true });
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+      dragListenersRef.current = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+      };
+    }, [hitTest, onCellEnter, scheduleComposite, detachDragListeners, stopDrag]);
+
     // ------- 事件 -------
     const onMouseDown = useCallback(
       (e: React.MouseEvent) => {
         if (e.button === 2) return;
         e.preventDefault();
         const idx = hitTest(e.clientX, e.clientY);
-        if (idx >= 0) onCellDown?.(idx);
+        if (idx >= 0) {
+          onCellDown?.(idx);
+          // useDrawing 的 onCellDown 已经知道 erase/shift；这里只是
+          // 启动 global listener 跟踪后续移动。
+          startDrag();
+        }
       },
-      [hitTest, onCellDown]
+      [hitTest, onCellDown, startDrag]
     );
 
     const onMouseMove = useCallback(
       (e: React.MouseEvent) => {
+        // 拖动期间移动由 global pointermove 处理，这里只更新 hover 预览。
+        if (isDraggingRef.current) {
+          // 仍然刷新 hover 显示（拖动时显示当前色）
+          const idx = hitTest(e.clientX, e.clientY);
+          if (idx !== hoverIdxRef.current) {
+            hoverIdxRef.current = idx;
+            scheduleComposite();
+          }
+          return;
+        }
         const idx = hitTest(e.clientX, e.clientY);
         if (idx !== hoverIdxRef.current) {
           hoverIdxRef.current = idx;
           onCellHover?.(idx);
-          if (idx >= 0) onCellEnter?.(idx);
           scheduleComposite();
         }
       },
-      [hitTest, onCellHover, onCellEnter, scheduleComposite]
+      [hitTest, onCellHover, scheduleComposite]
     );
 
     const onMouseLeave = useCallback(() => {
@@ -212,43 +288,84 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
       }
     }, [onCellHover, scheduleComposite]);
 
-    // 移动端：长按唤出 QuickPalette（取代桌面右键）；350ms 内抬起 = tap 绘制。
-    const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
-    const longPress = useLongPress({
-      onTap: () => {
-        const lt = lastTouchRef.current;
-        if (!lt) return;
-        const idx = hitTest(lt.x, lt.y);
-        if (idx >= 0) {
-          hoverIdxRef.current = idx;
-          onCellDown?.(idx);
-        }
-      },
-      onLongPress: () => {
-        const lt = lastTouchRef.current;
-        if (!lt) return;
-        onLongPress?.(lt.x, lt.y);
-      },
-    });
+    // 卸载时清理 global listener
+    useEffect(() => {
+      return () => detachDragListeners();
+    }, [detachDragListeners]);
+
+    // 移动端触摸事件模型（v3.1 §3.1/§3.2）:
+    // touch down 立即 onCellDown + startDrag,不等任何 timer。
+    // 同时并行启动 longPress timer(用于打开 QuickPalette),
+    // move > 4px(与 3D Board 一致)时只取消 timer,不影响 stroke。
+    // 这避免了「按下立即拖动」被误判为 tap cancel 而永远不绘制。
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+    const longPressTimerRef = useRef<number | undefined>(undefined);
+    const longPressFiredRef = useRef(false);
+    const LONG_PRESS_MS = 350;
+    const MOVE_THRESHOLD_PX = 4;
+
+    const clearLongPressTimer = useCallback(() => {
+      if (longPressTimerRef.current !== undefined) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = undefined;
+      }
+    }, []);
+
+    useEffect(() => () => clearLongPressTimer(), [clearLongPressTimer]);
 
     const onTouchStart = useCallback(
       (e: React.TouchEvent) => {
         const t = e.touches[0];
         if (!t) return;
         e.preventDefault();
-        lastTouchRef.current = { x: t.clientX, y: t.clientY };
-        longPress.onPointerDown({
-          pointerType: "touch",
-          clientX: t.clientX,
-          clientY: t.clientY,
-          preventDefault: () => e.preventDefault(),
-        });
+        const x = t.clientX;
+        const y = t.clientY;
+        touchStartRef.current = { x, y };
+        longPressFiredRef.current = false;
+
+        // 立即绘制（不等 timer）。hitTest 后立即 onCellDown + startDrag,
+        // 后续拖动由 global pointermove 接管。
+        const idx = hitTest(x, y);
+        if (idx >= 0) {
+          hoverIdxRef.current = idx;
+          onCellDown?.(idx);
+          startDrag();
+        }
+
+        // 并行启动 longPress timer,move > 4px 时取消。
+        clearLongPressTimer();
+        longPressTimerRef.current = window.setTimeout(() => {
+          longPressFiredRef.current = true;
+          onLongPress?.(x, y);
+        }, LONG_PRESS_MS);
+
+        const startX = x;
+        const startY = y;
+        const onMove = (ev: PointerEvent) => {
+          if (longPressFiredRef.current) return;
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          if (dx * dx + dy * dy > MOVE_THRESHOLD_PX * MOVE_THRESHOLD_PX) {
+            clearLongPressTimer();
+          }
+        };
+        const detach = () => {
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", detach);
+          window.removeEventListener("pointercancel", detach);
+        };
+        window.addEventListener("pointermove", onMove, { passive: true });
+        window.addEventListener("pointerup", detach);
+        window.addEventListener("pointercancel", detach);
       },
-      [longPress]
+      [hitTest, onCellDown, onLongPress, startDrag, clearLongPressTimer]
     );
 
+    // 触摸拖动期间不再依赖 React onTouchMove（已被 global pointermove 接管）。
+    // 但需要保留 onTouchMove 以兼容某些不会触发 pointerevent 的边界场景。
     const onTouchMove = useCallback(
       (e: React.TouchEvent) => {
+        if (!isDraggingRef.current) return;
         const t = e.touches[0];
         if (!t) return;
         const idx = hitTest(t.clientX, t.clientY);

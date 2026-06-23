@@ -1,22 +1,12 @@
 import { useRef, useState } from "react";
 import {
-  Brush,
-  Eraser,
-  Pipette,
-  Undo2,
-  Redo2,
   Download,
   Upload,
   Grid3x3,
   Box,
-  RotateCcw,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
 import { useBeadStore } from "../store/useBeadStore.ts";
 import { useClickOutside } from "../hooks/useClickOutside.ts";
-import { Modal } from "./Modal.tsx";
-import type { Tool } from "../types.ts";
 
 const btnBase =
   "w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg transition-all shrink-0";
@@ -26,16 +16,6 @@ const btnDisabled = "opacity-30 hover:bg-transparent";
 
 const cardClass =
   "flex items-center gap-0.5 md:gap-1 bg-white/95 rounded-xl p-1.5 shadow-sm border border-amber-100 flex-nowrap shrink-0";
-
-function Divider() {
-  return <div className="hidden sm:block w-px h-5 md:h-6 bg-amber-200 mx-0.5 md:mx-1.5 shrink-0" />;
-}
-
-const EDIT_TOOLS: { id: Tool; icon: typeof Brush; label: string }[] = [
-  { id: "brush", icon: Brush, label: "画笔" },
-  { id: "eraser", icon: Eraser, label: "橡皮" },
-  { id: "eyedropper", icon: Pipette, label: "吸管" },
-];
 
 // 画板上方左：2D/3D 切换
 export function ViewModeTab({
@@ -173,116 +153,5 @@ export function FileToolbar({
 
       {children}
     </div>
-  );
-}
-
-// 画板下方：编辑 + 历史/重置 + 静音
-export function EditToolbar({
-  onToggleMute,
-  muted,
-}: {
-  onToggleMute: () => void;
-  muted: boolean;
-}) {
-  const tool = useBeadStore((s) => s.tool);
-  const setTool = useBeadStore((s) => s.setTool);
-  const undo = useBeadStore((s) => s.undo);
-  const redo = useBeadStore((s) => s.redo);
-  const clear = useBeadStore((s) => s.clear);
-  const history = useBeadStore((s) => s.history);
-  const redoStack = useBeadStore((s) => s.redoStack);
-  const strokeSnapshot = useBeadStore((s) => s.strokeSnapshot);
-  const grid = useBeadStore((s) => s.grid);
-
-  const canUndo = !strokeSnapshot && history.length > 0;
-  const canRedo = !strokeSnapshot && redoStack.length > 0;
-  const isEmpty = grid.every((c) => c === null);
-
-  const [confirmReset, setConfirmReset] = useState(false);
-
-  return (
-    <>
-      <div
-        data-ui
-        className="flex items-center justify-center gap-0.5 md:gap-1 bg-white/98 border-t border-amber-100 shadow-lg px-2 py-2 md:py-2.5 overflow-x-auto"
-      >
-        {EDIT_TOOLS.map((t) => {
-          const Icon = t.icon;
-          const active = tool === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTool(t.id)}
-              title={t.label}
-              aria-label={t.label}
-              aria-pressed={active}
-              className={`${btnBase} ${active ? btnActive : btnIdle}`}
-            >
-              <Icon size={18} strokeWidth={2.2} />
-            </button>
-          );
-        })}
-
-        <Divider />
-
-        <button
-          onClick={undo}
-          disabled={!canUndo}
-          title="撤销"
-          aria-label="撤销"
-          className={`${btnBase} ${canUndo ? btnIdle : btnDisabled}`}
-        >
-          <Undo2 size={18} strokeWidth={2.2} />
-        </button>
-        <button
-          onClick={redo}
-          disabled={!canRedo}
-          title="前进"
-          aria-label="前进"
-          className={`${btnBase} ${canRedo ? btnIdle : btnDisabled}`}
-        >
-          <Redo2 size={18} strokeWidth={2.2} />
-        </button>
-        <button
-          onClick={() => setConfirmReset(true)}
-          disabled={isEmpty}
-          title="重置画布"
-          aria-label="重置画布"
-          className={`${btnBase} ${
-            isEmpty ? btnDisabled : "text-stone-600 hover:bg-red-100 hover:text-red-600"
-          }`}
-        >
-          <RotateCcw size={18} strokeWidth={2.2} />
-        </button>
-
-        <Divider />
-
-        <button
-          onClick={onToggleMute}
-          title={muted ? "取消静音" : "静音"}
-          aria-label={muted ? "取消静音" : "静音"}
-          aria-pressed={!muted}
-          className={`${btnBase} ${
-            muted ? "text-stone-400 hover:bg-amber-100" : "text-amber-600 bg-amber-50"
-          }`}
-        >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        </button>
-      </div>
-
-      <Modal
-        open={confirmReset}
-        title="重置画布？"
-        description="所有拼豆将被清空，但可以用撤销恢复。"
-        variant="danger"
-        confirmText="确认重置"
-        cancelText="取消"
-        onCancel={() => setConfirmReset(false)}
-        onConfirm={() => {
-          clear();
-          setConfirmReset(false);
-        }}
-      />
-    </>
   );
 }

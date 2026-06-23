@@ -1,8 +1,8 @@
-import { useState, useRef, type CSSProperties } from "react";
+import { useState, useRef, useEffect, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { LayoutGrid, Plus, Trash2 } from "lucide-react";
 import { useTemplatesStore } from "../store/useTemplatesStore.ts";
 import { useBeadStore } from "../store/useBeadStore.ts";
-import { useClickOutside } from "../hooks/useClickOutside.ts";
 import { Modal } from "./Modal.tsx";
 import { getColor } from "../data/colors.ts";
 import type { Template } from "../types.ts";
@@ -18,8 +18,69 @@ export function TemplateGallery() {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [draftName, setDraftName] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
 
-  useClickOutside(containerRef, () => setOpen(false), open);
+  // Click outside + Escape to close. We need to consider both the trigger
+  // container (in normal React tree) and the popover (ported to body).
+  useEffect(() => {
+    if (!open) return;
+    const onMouse = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        containerRef.current?.contains(target) ||
+        popoverRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onMouse);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onMouse);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  // Recompute popover position on open and on viewport changes.
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const POPOVER_WIDTH = 360;
+      const GAP = 8;
+      const MARGIN = 8;
+      // Default: align right edge of popover with right edge of trigger.
+      let left = rect.right - POPOVER_WIDTH;
+      // Clamp into viewport.
+      const maxLeft = window.innerWidth - POPOVER_WIDTH - MARGIN;
+      const minLeft = MARGIN;
+      left = Math.max(minLeft, Math.min(left, maxLeft));
+      let top = rect.bottom + GAP;
+      // If overflow bottom, flip above.
+      const POPOVER_MAX_HEIGHT = Math.min(
+        window.innerHeight * 0.6,
+        window.innerHeight - top - MARGIN
+      );
+      if (top + 200 > window.innerHeight) {
+        top = Math.max(MARGIN, rect.top - GAP - Math.min(POPOVER_MAX_HEIGHT, rect.top - GAP * 2));
+      }
+      setPopoverPos({ top, left });
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open]);
 
   const loadTemplate = useBeadStore((s) => s.loadTemplate);
   const grid = useBeadStore((s) => s.grid);
@@ -48,6 +109,7 @@ export function TemplateGallery() {
     <>
       <div ref={containerRef} className="relative shrink-0">
         <button
+          ref={triggerRef}
           onClick={() => setOpen((o) => !o)}
           title="模板"
           aria-label="模板"
@@ -60,11 +122,20 @@ export function TemplateGallery() {
         >
           <LayoutGrid size={18} strokeWidth={2.2} />
         </button>
+      </div>
 
-        {open && (
+      {open &&
+        createPortal(
           <div
+            ref={popoverRef}
             data-ui
-            className="absolute top-full mt-2 right-0 z-[100] w-[360px] max-w-[calc(100vw-1rem)] bg-white/95 backdrop-blur rounded-xl p-4 shadow-xl border border-amber-100 max-h-[60vh] overflow-y-auto"
+            style={{
+              position: "fixed",
+              top: `${popoverPos.top}px`,
+              left: `${popoverPos.left}px`,
+              zIndex: 100,
+            }}
+            className="w-[360px] max-w-[calc(100vw-1rem)] bg-white/95 backdrop-blur rounded-xl p-4 shadow-xl border border-amber-100 max-h-[60vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
@@ -111,9 +182,9 @@ export function TemplateGallery() {
                 ))}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
-      </div>
 
       <Modal
         open={dialog?.kind === "empty"}

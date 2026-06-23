@@ -1,12 +1,10 @@
-import { useMemo, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Instances, Instance, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { useBeadStore } from "../store/useBeadStore.ts";
-import { useGrabStore } from "../store/useGrabStore.ts";
-import { useStackStore } from "../store/useStackStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
-import { useLongPress } from "../hooks/useLongPress.ts";
+import type { PointerType } from "../types.ts";
 import {
   BOARD_N,
   BOARD_SIZE,
@@ -22,7 +20,6 @@ import { ItemHandler } from "./Handler.tsx";
 import { Beads } from "./Beads.tsx";
 
 const BOARD_SLAB = BOARD_SIZE + 0.3;
-const REPEAT_INTERVAL = 0.16;
 
 interface BoardProps {
   onPlace?: (colorId: string) => void;
@@ -30,9 +27,30 @@ interface BoardProps {
   onErase?: () => void;
 }
 
+// peg 顶部高度(用户视觉看到的「peg 圆面」)
+// 用 peg 顶部而非中心:豆子最终会落到 BOARD_TOP_Y + PEG_HEIGHT/2 的 peg 中心,
+// 但用户点击时视觉对齐的是 peg 顶部圆面。两者 x/z 一致(peg 是竖直的),
+// 取顶部高度是为了让 ray-plane 求得的交点 x/z 与「视觉 peg 中心」一致。
+const PEG_TOP_Y = BOARD_TOP_Y + PEG_HEIGHT;
+const pegTopPlane = new THREE.Plane(
+  new THREE.Vector3(0, 1, 0),
+  -PEG_TOP_Y
+);
+const hitOnPegTop = new THREE.Vector3();
+
+function rayToIdx(ray: THREE.Ray): number | null {
+  const bt = useLayoutStore.getState().transforms.board;
+  const hit = ray.intersectPlane(pegTopPlane, hitOnPegTop);
+  if (!hit) return null;
+  const [lx, lz] = worldToLocal(bt, hit.x, hit.z);
+  const half = (BOARD_N - 1) / 2;
+  const col = Math.round(lx / CELL + half);
+  const row = Math.round(lz / CELL + half);
+  if (col < 0 || col >= BOARD_N || row < 0 || row >= BOARD_N) return null;
+  return row * BOARD_N + col;
+}
+
 export function Board({ onPlace, onPick, onErase }: BoardProps) {
-  const placeBead = useBeadStore((s) => s.placeBead);
-  const removeBead = useBeadStore((s) => s.removeBead);
   const boardMaterial = useMemo(() => createBoardMaterial(), []);
   const pegMaterial = useMemo(() => createGlassMaterial(), []);
 
@@ -52,108 +70,225 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
     return arr;
   }, []);
 
-  const tryPick = () => {
-    const hovered = useGrabStore.getState().hoveredIdx;
-    if (hovered === null) return false;
-    const existing = useBeadStore.getState().grid[hovered];
-    if (!existing) return false;
-    if (!useStackStore.getState().push(existing)) return false;
-    if (!removeBead(hovered)) {
-      useStackStore.getState().pop();
-      return false;
+  const prepareTimerRef = useRef<number | undefined>(undefined);
+  const longPressTimerRef = useRef<number | undefined>(undefined);
+  const touchStartRef = useRef<{ x: number; y: number; idx: number } | null>(null);
+
+  const clearLongPressTimers = () => {
+    if (prepareTimerRef.current !== undefined) {
+      clearTimeout(prepareTimerRef.current);
+      prepareTimerRef.current = undefined;
     }
-    onPick?.(existing);
-    return true;
+    if (longPressTimerRef.current !== undefined) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = undefined;
+    }
   };
 
-  const tryPlace = () => {
-    const hovered = useGrabStore.getState().hoveredIdx;
-    if (hovered === null) return false;
-    if (useBeadStore.getState().grid[hovered]) return false;
-    const colorId = useStackStore.getState().pop();
-    if (!colorId) return false;
-    if (!placeBead(hovered, colorId)) {
-      useStackStore.getState().push(colorId);
-      return false;
-    }
-    onPlace?.(colorId);
-    return true;
-  };
-
-  const tryEraseOne = () => {
-    if (useStackStore.getState().stack.length > 0) {
-      if (useStackStore.getState().pop()) {
-        onErase?.();
-        return true;
+  useEffect(() => {
+    const finish = () => {
+      const s = useBeadStore.getState();
+      clearLongPressTimers();
+      touchStartRef.current = null;
+      if (s.strokeSnapshot) {
+        s.endStroke();
+        s.setMode("idle");
       }
-    }
-    const hovered = useGrabStore.getState().hoveredIdx;
-    if (hovered === null) return false;
-    if (useBeadStore.getState().grid[hovered]) {
-      if (removeBead(hovered)) {
-        onErase?.();
-        return true;
-      }
-    }
-    return false;
-  };
+    };
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+    return () => {
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    };
+  }, []);
 
-  const handlePrimaryDown = (e: any) => {
-    if (e.pointerType === "touch") return; // 移动端走 useLongPress
+  // 两指 tap:正常模式撤销,Preview 模式退出 Preview(v3.1 §14.6)
+  useEffect(() => {
+    const activePointers = new Set<number>();
+    let twoFingerStart: { x: number; y: number; time: number } | null = null;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== "touch") return;
+      activePointers.add(e.pointerId);
+      if (activePointers.size === 2) {
+        twoFingerStart = { x: e.clientX, y: e.clientY, time: Date.now() };
+      }
+    };
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerType !== "touch") return;
+      const wasTwo = activePointers.size >= 2;
+      activePointers.delete(e.pointerId);
+      if (wasTwo && twoFingerStart && activePointers.size === 0) {
+        const elapsed = Date.now() - twoFingerStart.time;
+        const dx = e.clientX - twoFingerStart.x;
+        const dy = e.clientY - twoFingerStart.y;
+        if (elapsed < 300 && dx * dx + dy * dy < 25 * 25) {
+          const ls = useLayoutStore.getState();
+          if (ls.previewMode) {
+            ls.togglePreview();
+          } else {
+            useBeadStore.getState().undo();
+          }
+        }
+        twoFingerStart = null;
+      }
+    };
+
+    window.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, []);
+
+  const handlePrimaryDown = (e: ThreeEvent<PointerEvent>) => {
     if (useLayoutStore.getState().draggingItem) return;
     if (useLayoutStore.getState().previewMode) return;
-    e.stopPropagation?.();
-    const existing =
-      useGrabStore.getState().hoveredIdx !== null
-        ? useBeadStore.getState().grid[useGrabStore.getState().hoveredIdx!]
-        : null;
-    const firstOk = existing ? tryPick() : tryPlace();
-    if (!firstOk) return;
+    e.stopPropagation();
 
-    let count = 0;
-    const timer = setInterval(() => {
-      count++;
-      const ok = existing ? tryPick() : tryPlace();
-      if (!ok) {
-        clearInterval(timer);
-        return;
+    const s = useBeadStore.getState();
+    s.setPointerType(e.pointerType as PointerType);
+
+    const idx = rayToIdx(e.ray);
+    if (idx === null) return;
+
+    const native = e.nativeEvent as PointerEvent;
+    const { button, shiftKey, altKey } = native;
+    const isMouse = e.pointerType === "mouse";
+
+    if (!isMouse) {
+      if (!native.isPrimary) return;
+      handleTouchStart(native, idx, s);
+      return;
+    }
+
+    if (altKey && button === 0) {
+      if (s.grid[idx]) {
+        s.pickColor(idx);
+        onPick?.(s.grid[idx]!);
       }
-      if (count > 30) clearInterval(timer);
-    }, REPEAT_INTERVAL * 1000);
+      return;
+    }
 
-    const cancel = () => {
-      clearInterval(timer);
-      window.removeEventListener("pointerup", cancel);
-    };
-    window.addEventListener("pointerup", cancel);
+    const wantErase =
+      button === 2 || (button === 0 && shiftKey) || (button === 0 && s.eraserToggle);
+
+    if (wantErase) {
+      if (s.grid[idx] === null) return;
+      s.setMode("erasing");
+      s.beginStroke();
+      s.eraseAt(idx);
+      onErase?.();
+      return;
+    }
+
+    if (button === 0) {
+      s.setMode("placing");
+      s.beginStroke();
+      s.paintAt(idx);
+      onPlace?.(s.currentColorId);
+    }
   };
 
-  // 移动端：350ms 内抬起 = 单击 place/pick；超时 = 擦除（吞掉后续 tap）。
-  const longPress = useLongPress({
-    onTap: () => {
-      if (useLayoutStore.getState().draggingItem) return;
-      if (useLayoutStore.getState().previewMode) return;
-      const existing =
-        useGrabStore.getState().hoveredIdx !== null
-          ? useBeadStore.getState().grid[useGrabStore.getState().hoveredIdx!]
-          : null;
-      existing ? tryPick() : tryPlace();
-    },
-    onLongPress: () => {
-      if (useLayoutStore.getState().draggingItem) return;
-      if (useLayoutStore.getState().previewMode) return;
-      tryEraseOne();
-    },
-  });
+  const handleTouchStart = (
+    native: PointerEvent,
+    idx: number,
+    s: ReturnType<typeof useBeadStore.getState>
+  ) => {
+    const wantErase = s.eraserToggle;
+    if (wantErase) {
+      if (s.grid[idx] === null) return;
+      s.setMode("erasing");
+      s.beginStroke();
+      s.eraseAt(idx);
+      onErase?.();
+      return;
+    }
 
-  const handleTouchPointerDown = (e: any) => {
-    e.stopPropagation?.();
-    longPress.onPointerDown(e);
+    s.setMode("placing");
+    s.beginStroke();
+    s.paintAt(idx);
+    onPlace?.(s.currentColorId);
+
+    touchStartRef.current = { x: native.clientX, y: native.clientY, idx };
+
+    prepareTimerRef.current = window.setTimeout(() => {
+      const cur = useBeadStore.getState();
+      if ((cur.mode === "placing" || cur.mode === "painting") && touchStartRef.current?.idx === idx) {
+        cur.setMode("long_pressing");
+      }
+    }, 200);
+
+    longPressTimerRef.current = window.setTimeout(() => {
+      const cur = useBeadStore.getState();
+      if (cur.mode === "long_pressing" && touchStartRef.current?.idx === idx) {
+        cur.endStroke();
+        cur.undo();
+        const color = cur.grid[idx];
+        if (color) {
+          cur.pickColor(idx);
+          onPick?.(color);
+        }
+        cur.setMode("idle");
+        touchStartRef.current = null;
+      }
+    }, 400);
   };
 
-  const handleContextMenu = (e: any) => {
-    e.stopPropagation?.();
-    tryEraseOne();
+  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
+    const s = useBeadStore.getState();
+    if (!s.strokeSnapshot) return;
+    if (s.mode !== "placing" && s.mode !== "painting" && s.mode !== "erasing" && s.mode !== "long_pressing") return;
+
+    const idx = rayToIdx(e.ray);
+    if (idx === null) return;
+
+    if (e.pointerType !== "mouse" && touchStartRef.current) {
+      const native = e.nativeEvent as PointerEvent;
+      const dx = native.clientX - touchStartRef.current.x;
+      const dy = native.clientY - touchStartRef.current.y;
+      if (dx * dx + dy * dy > 4) {
+        clearLongPressTimers();
+        if (s.mode === "long_pressing") s.setMode("painting");
+      }
+    }
+
+    if (s.mode === "long_pressing") return;
+
+    if (s.mode === "placing") s.setMode("painting");
+
+    if (s.mode === "erasing") {
+      if (s.grid[idx] !== null) {
+        s.eraseAt(idx);
+        onErase?.();
+      }
+    } else {
+      if (s.grid[idx] !== s.currentColorId) {
+        s.paintAt(idx);
+        onPlace?.(s.currentColorId);
+      }
+    }
+  };
+
+  const handleDoubleClick = (e: ThreeEvent<PointerEvent>) => {
+    if (useLayoutStore.getState().previewMode) return;
+    if (e.pointerType !== "mouse") return;
+    const idx = rayToIdx(e.ray);
+    if (idx === null) return;
+    const s = useBeadStore.getState();
+    if (s.grid[idx]) {
+      s.pickColor(idx);
+      onPick?.(s.grid[idx]!);
+    }
+  };
+
+  const handleContextMenu = (e: ThreeEvent<PointerEvent>) => {
+    e.nativeEvent.preventDefault();
+    e.stopPropagation();
   };
 
   return (
@@ -161,17 +296,13 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
       <RoundedBox
         args={[BOARD_SLAB, BOARD_THICKNESS, BOARD_SLAB]}
         radius={0.12}
-        // Reduced from 4 -> 3. Board slab is flat-ish so the rounded edge
-        // silhouette difference is negligible, and this geometry is reused
-        // by BoardCluster which is always on screen.
         smoothness={3}
         position={[0, 0, 0]}
         receiveShadow
         castShadow
-        onPointerDown={(e: any) => {
-          handlePrimaryDown(e);
-          handleTouchPointerDown(e);
-        }}
+        onPointerDown={handlePrimaryDown}
+        onPointerMove={handlePointerMove}
+        onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
       >
         <primitive object={boardMaterial} attach="material" />
@@ -253,10 +384,6 @@ export function BoardCluster({ onPlace, onPick, onErase }: BoardClusterProps) {
     tilt.current.z += (targetTilt.current.z - tilt.current.z) * TILT_LERP;
     lift.current += (targetLift.current - lift.current) * LIFT_LERP;
 
-    // Outside preview mode we still need to ease tilt/lift back to zero after
-    // the user exits preview, but once we've settled there's nothing to write
-    // — the board stays at its base transform. Skipping the matrix write saves
-    // a Three.js matrix composition per frame in the common idle case.
     const settled =
       !inPreview &&
       Math.abs(tilt.current.x) < 1e-4 &&
