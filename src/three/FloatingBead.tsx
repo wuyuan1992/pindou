@@ -4,6 +4,7 @@ import type { Group } from "three";
 import { useStackStore } from "../store/useStackStore.ts";
 import { useGrabStore } from "../store/useGrabStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
+import { useIsMobile } from "../hooks/useMediaQuery.ts";
 import { getColor } from "../data/colors.ts";
 import { createBeadGeometry, createGlassBeadMaterial } from "./materials.ts";
 import { BOARD_N, CELL, localToWorld } from "./constants.ts";
@@ -11,12 +12,15 @@ import { Tweezers } from "./Tweezers.tsx";
 
 const HALF = (BOARD_N - 1) / 2;
 const BEAD_SPACING_Y = 0.65;
+// 移动端向上偏移，避免手指遮挡 tweezers + bead stack。
+const MOBILE_Y_OFFSET = 1.2;
 
 export function FloatingBead() {
   // 只订阅 stack（变化少，需要触发 React 重渲染以重建 mesh 列表）。
   // dragPos / hoveredIdx / boardTransform / draggingItem / hoveringHandler / previewMode
   // 全部走 useFrame + getState()，避免 pointermove 每帧重渲染整棵子树。
   const stack = useStackStore((s) => s.stack);
+  const isMobile = useIsMobile();
 
   const groupRef = useRef<Group>(null);
 
@@ -63,7 +67,7 @@ export function FloatingBead() {
     );
     const baseX = snapped ? snappedX : dragPos[0];
     const baseZ = snapped ? snappedZ : dragPos[2];
-    const baseY = dragPos[1];
+    const baseY = dragPos[1] + (isMobile ? MOBILE_Y_OFFSET : 0);
 
     group.position.set(baseX, baseY, baseZ);
     group.rotation.y = boardTransform.rotationY;

@@ -52,7 +52,7 @@ export function Toolbar({
   return (
     <div
       data-ui
-      className="flex items-center gap-1 bg-white/80 backdrop-blur rounded-xl p-1.5 shadow-sm border border-amber-100"
+      className="flex items-center gap-1 bg-white/80 backdrop-blur rounded-xl p-1.5 shadow-sm border border-amber-100 flex-nowrap shrink-0"
     >
       {tools.map((t) => {
         const Icon = t.icon;

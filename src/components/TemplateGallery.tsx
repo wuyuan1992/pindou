@@ -55,7 +55,7 @@ export function TemplateGallery() {
     <div
       ref={containerRef}
       data-ui
-      className="relative bg-white/80 backdrop-blur rounded-xl p-1.5 shadow-sm border border-amber-100"
+      className="relative bg-white/80 backdrop-blur rounded-xl p-1.5 shadow-sm border border-amber-100 shrink-0"
     >
       <button
         onClick={() => setOpen((o) => !o)}
@@ -73,7 +73,7 @@ export function TemplateGallery() {
       {open && (
         <div
           data-ui
-          className="absolute z-50 mt-2 w-[360px] right-0 bg-white/95 backdrop-blur rounded-xl p-4 shadow-xl border border-amber-100 max-h-[70vh] overflow-y-auto"
+          className="absolute md:absolute fixed inset-x-2 bottom-20 md:inset-x-auto md:bottom-auto md:right-0 md:mt-2 z-50 w-[360px] max-w-[calc(100vw-1rem)] bg-white/95 backdrop-blur rounded-xl p-4 shadow-xl border border-amber-100 max-h-[60vh] md:max-h-[70vh] overflow-y-auto"
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">

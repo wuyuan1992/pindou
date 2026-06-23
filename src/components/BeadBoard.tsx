@@ -30,6 +30,10 @@ export const BeadBoard = forwardRef<HTMLDivElement, BeadBoardProps>(
       setPalettePos({ x: e.clientX, y: e.clientY });
     }, []);
 
+    const onLongPress = useCallback((x: number, y: number) => {
+      setPalettePos({ x, y });
+    }, []);
+
     return (
       <>
         <BeadCanvas
@@ -40,6 +44,7 @@ export const BeadBoard = forwardRef<HTMLDivElement, BeadBoardProps>(
           onCellEnter={(idx) => drawing.onCellEnter(idx)}
           onTouchHit={(idx) => drawing.onTouchHit(idx)}
           onContextMenu={onContextMenu}
+          onLongPress={onLongPress}
         />
 
         {palettePos && (

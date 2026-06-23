@@ -13,6 +13,7 @@ import { createTableMaterial } from "./materials.ts";
 interface PindouCanvasProps {
   className?: string;
   style?: CSSProperties;
+  dpr?: [number, number];
   onPlace?: BoardProps["onPlace"];
   onPick?: BoardProps["onPick"];
   onErase?: BoardProps["onErase"];
@@ -71,6 +72,7 @@ function Table() {
 export function PindouCanvas({
   className,
   style,
+  dpr = [1, 1.75],
   onPlace,
   onPick,
   onErase,
@@ -79,14 +81,23 @@ export function PindouCanvas({
   onTrayPick,
 }: PindouCanvasProps) {
   return (
-    <div className={className} style={{ width: "100%", height: "100%", ...style }}>
+    <div
+      className={className}
+      style={{
+        width: "100%",
+        height: "100%",
+        touchAction: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+        userSelect: "none",
+        ...style,
+      }}
+    >
       <Canvas
         shadows
         camera={{ position: [0.5, 28, 11], fov: 44, near: 0.1, far: 200 }}
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-        // Capped at 1.75 (down from 2). On 2x-DPI screens this cuts the
-        // fragment shader workload by ~25% with no visible difference.
-        dpr={[1, 1.75]}
+        dpr={dpr}
         style={{ width: "100%", height: "100%" }}
       >
         <CameraRig />

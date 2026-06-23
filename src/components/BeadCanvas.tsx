@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import { useBeadStore } from "../store/useBeadStore.ts";
+import { useLongPress } from "../hooks/useLongPress.ts";
 import { getColor } from "../data/colors.ts";
 import {
   drawCell,
@@ -25,11 +26,12 @@ interface BeadCanvasProps {
   onCellHover?: (idx: number | null) => void;
   onTouchHit?: (idx: number) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onLongPress?: (x: number, y: number) => void;
 }
 
 export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
   function BeadCanvas(
-    { beadSize, exporting = false, onCellDown, onCellEnter, onCellHover, onTouchHit, onContextMenu },
+    { beadSize, exporting = false, onCellDown, onCellEnter, onCellHover, onTouchHit, onContextMenu, onLongPress },
     ref
   ) {
     const grid = useBeadStore((s) => s.grid);
@@ -179,7 +181,7 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
     );
 
     // ------- 事件 -------
-    const onPointerDown = useCallback(
+    const onMouseDown = useCallback(
       (e: React.MouseEvent) => {
         if (e.button === 2) return;
         e.preventDefault();
@@ -189,7 +191,7 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
       [hitTest, onCellDown]
     );
 
-    const onPointerMove = useCallback(
+    const onMouseMove = useCallback(
       (e: React.MouseEvent) => {
         const idx = hitTest(e.clientX, e.clientY);
         if (idx !== hoverIdxRef.current) {
@@ -202,7 +204,7 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
       [hitTest, onCellHover, onCellEnter, scheduleComposite]
     );
 
-    const onPointerLeave = useCallback(() => {
+    const onMouseLeave = useCallback(() => {
       if (hoverIdxRef.current !== null) {
         hoverIdxRef.current = null;
         onCellHover?.(null);
@@ -210,18 +212,39 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
       }
     }, [onCellHover, scheduleComposite]);
 
-    const onTouchStart = useCallback(
-      (e: React.TouchEvent) => {
-        const t = e.touches[0];
-        if (!t) return;
-        e.preventDefault();
-        const idx = hitTest(t.clientX, t.clientY);
+    // 移动端：长按唤出 QuickPalette（取代桌面右键）；350ms 内抬起 = tap 绘制。
+    const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
+    const longPress = useLongPress({
+      onTap: () => {
+        const lt = lastTouchRef.current;
+        if (!lt) return;
+        const idx = hitTest(lt.x, lt.y);
         if (idx >= 0) {
           hoverIdxRef.current = idx;
           onCellDown?.(idx);
         }
       },
-      [hitTest, onCellDown]
+      onLongPress: () => {
+        const lt = lastTouchRef.current;
+        if (!lt) return;
+        onLongPress?.(lt.x, lt.y);
+      },
+    });
+
+    const onTouchStart = useCallback(
+      (e: React.TouchEvent) => {
+        const t = e.touches[0];
+        if (!t) return;
+        e.preventDefault();
+        lastTouchRef.current = { x: t.clientX, y: t.clientY };
+        longPress.onPointerDown({
+          pointerType: "touch",
+          clientX: t.clientX,
+          clientY: t.clientY,
+          preventDefault: () => e.preventDefault(),
+        });
+      },
+      [longPress]
     );
 
     const onTouchMove = useCallback(
@@ -259,6 +282,8 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
           boxShadow:
             "inset 0 2px 8px rgba(80, 60, 30, 0.18), 0 8px 24px rgba(80, 60, 30, 0.15)",
           userSelect: "none",
+          WebkitUserSelect: "none",
+          WebkitTouchCallout: "none",
           touchAction: "none",
           width: cssW + pad * 2,
           height: cssH + pad * 2,
@@ -272,10 +297,11 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
             width: cssW,
             height: cssH,
             cursor: "crosshair",
+            touchAction: "none",
           }}
-          onMouseDown={onPointerDown}
-          onMouseMove={onPointerMove}
-          onMouseLeave={onPointerLeave}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseLeave={onMouseLeave}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
         />

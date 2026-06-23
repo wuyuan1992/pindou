@@ -21,6 +21,27 @@ body {
   overscroll-behavior: none;
 }
 
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    overflow: hidden;
+    height: 100%;
+    height: 100dvh;
+  }
+  body {
+    overscroll-behavior: contain;
+    -webkit-text-size-adjust: 100%;
+  }
+  /* 阻止 iOS 长按系统菜单 */
+  canvas,
+  [data-export-root] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
 button {
   font-family: inherit;
 }

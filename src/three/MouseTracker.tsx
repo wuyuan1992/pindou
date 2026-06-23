@@ -3,11 +3,13 @@ import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useGrabStore } from "../store/useGrabStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
+import { useIsMobile } from "../hooks/useMediaQuery.ts";
 import { DRAG_PLANE_Y, BOARD_N, CELL, worldToLocal } from "./constants.ts";
 
 export function MouseTracker() {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
+  const isMobile = useIsMobile();
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const plane = useMemo(
     () => new THREE.Plane(new THREE.Vector3(0, 1, 0), -DRAG_PLANE_Y),
@@ -51,11 +53,22 @@ export function MouseTracker() {
       }
     };
 
-    const onMove = (e: PointerEvent) => {
-      clientRef.current = { x: e.clientX, y: e.clientY };
+    const schedule = (x: number, y: number) => {
+      clientRef.current = { x, y };
       if (rafRef.current === null) {
         rafRef.current = requestAnimationFrame(runRaycast);
       }
+    };
+
+    const onMove = (e: PointerEvent) => {
+      schedule(e.clientX, e.clientY);
+    };
+
+    // 移动端：pointerdown 用 capture phase，确保 R3F 派发 pointerdown 到对象之前
+    // dragPos/hoveredIdx 已同步到落点；否则 handlePrimaryDown 会读到 stale 值。
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") return;
+      schedule(e.clientX, e.clientY);
     };
 
     const onLeave = () => {
@@ -70,15 +83,19 @@ export function MouseTracker() {
 
     canvas.addEventListener("pointermove", onMove);
     canvas.addEventListener("pointerleave", onLeave);
+    if (isMobile) {
+      canvas.addEventListener("pointerdown", onDown, { capture: true });
+    }
     return () => {
       canvas.removeEventListener("pointermove", onMove);
       canvas.removeEventListener("pointerleave", onLeave);
+      canvas.removeEventListener("pointerdown", onDown, { capture: true } as AddEventListenerOptions);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
     };
-  }, [camera, gl, raycaster, plane, target, ndc]);
+  }, [camera, gl, raycaster, plane, target, ndc, isMobile]);
 
   return null;
 }

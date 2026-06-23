@@ -6,6 +6,7 @@ import { useBeadStore } from "../store/useBeadStore.ts";
 import { useGrabStore } from "../store/useGrabStore.ts";
 import { useStackStore } from "../store/useStackStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
+import { useLongPress } from "../hooks/useLongPress.ts";
 import {
   BOARD_N,
   BOARD_SIZE,
@@ -98,6 +99,7 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
   };
 
   const handlePrimaryDown = (e: any) => {
+    if (e.pointerType === "touch") return; // 移动端走 useLongPress
     if (useLayoutStore.getState().draggingItem) return;
     if (useLayoutStore.getState().previewMode) return;
     e.stopPropagation?.();
@@ -126,6 +128,29 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
     window.addEventListener("pointerup", cancel);
   };
 
+  // 移动端：350ms 内抬起 = 单击 place/pick；超时 = 擦除（吞掉后续 tap）。
+  const longPress = useLongPress({
+    onTap: () => {
+      if (useLayoutStore.getState().draggingItem) return;
+      if (useLayoutStore.getState().previewMode) return;
+      const existing =
+        useGrabStore.getState().hoveredIdx !== null
+          ? useBeadStore.getState().grid[useGrabStore.getState().hoveredIdx!]
+          : null;
+      existing ? tryPick() : tryPlace();
+    },
+    onLongPress: () => {
+      if (useLayoutStore.getState().draggingItem) return;
+      if (useLayoutStore.getState().previewMode) return;
+      tryEraseOne();
+    },
+  });
+
+  const handleTouchPointerDown = (e: any) => {
+    e.stopPropagation?.();
+    longPress.onPointerDown(e);
+  };
+
   const handleContextMenu = (e: any) => {
     e.stopPropagation?.();
     tryEraseOne();
@@ -143,7 +168,10 @@ export function Board({ onPlace, onPick, onErase }: BoardProps) {
         position={[0, 0, 0]}
         receiveShadow
         castShadow
-        onPointerDown={handlePrimaryDown}
+        onPointerDown={(e: any) => {
+          handlePrimaryDown(e);
+          handleTouchPointerDown(e);
+        }}
         onContextMenu={handleContextMenu}
       >
         <primitive object={boardMaterial} attach="material" />

@@ -6,6 +6,7 @@ import { useTrayStore } from "../store/useTrayStore.ts";
 import { useStackStore, STACK_SIZE } from "../store/useStackStore.ts";
 import { useGrabStore } from "../store/useGrabStore.ts";
 import { useLayoutStore } from "../store/useLayoutStore.ts";
+import { useLongPress } from "../hooks/useLongPress.ts";
 import { getColor } from "../data/colors.ts";
 import {
   createBeadGeometry,
@@ -208,8 +209,23 @@ export function Tray({ onDrop, onPick }: TrayProps) {
     window.addEventListener("pointerup", cancel);
   };
 
+  // 移动端：长按 tray 地板 = 扔下一颗（取代桌面右键）。
+  const trayLongPress = useLongPress({
+    onTap: () => {},
+    onLongPress: () => {
+      if (dragging) return;
+      tryDropOne();
+    },
+  });
+
   const handleTrayPointerDown = (e: ThreeEvent<PointerEvent>) => {
     if (dragging) return;
+    if (e.pointerType === "touch") {
+      // touch 路径交给 long-press hook（mouse 早退，不会重复触发）
+      e.stopPropagation();
+      trayLongPress.onPointerDown(e);
+      return;
+    }
     if (e.button !== 2) return;
     e.stopPropagation();
     e.nativeEvent.preventDefault();
@@ -219,6 +235,16 @@ export function Tray({ onDrop, onPick }: TrayProps) {
 
   const handleInstancedPointerDown = (e: ThreeEvent<PointerEvent>) => {
     if (dragging) return;
+    if (e.pointerType === "touch") {
+      // 移动端 tap 一次拾取一颗，不连续
+      e.stopPropagation();
+      const instanceId = e.instanceId;
+      if (instanceId === undefined) return;
+      const targetId = indexToIdRef.current[instanceId];
+      if (!targetId) return;
+      tryPickOne(targetId);
+      return;
+    }
     if (e.button !== 0) return;
     // 右键 / 中键：让事件冒泡到 tray 触发 drop
     e.stopPropagation();
