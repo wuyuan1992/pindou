@@ -27,22 +27,25 @@ export default function App() {
   const [exporting, setExporting] = useState(false);
   const [exportingFlat, setExportingFlat] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [mode, setMode] = useState<ViewMode>("3d");
+  const [mode, setMode] = useState<ViewMode>("2d");
   const [beadSize, setBeadSize] = useState(DEFAULT_BEAD_SIZE);
   const [notice, setNotice] = useState<string | null>(null);
   const [storeOpen, setStoreOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // 2D 画布 beadSize 自适应：测量可用宽度，按 cols 等分，夹在 [MIN, DEFAULT]。
+  // 2D 画布 beadSize 自适应：按容器较小边等比例缩放，画板（含 padding）刚好填满容器。
+  // pad = beadSize * 0.4 两侧共 0.8，所以画板占 beadSize * (cols + 0.8)。
   useEffect(() => {
     const el = measureRef.current;
     if (!el) return;
     const compute = () => {
-      const cols = useBeadStore.getState().cols;
+      const { cols, rows } = useBeadStore.getState();
       const w = el.clientWidth;
-      // 减去左右内边距余量，再除以列数
-      const size = Math.floor((w - 32) / cols);
-      setBeadSize(Math.max(MIN_BEAD_SIZE, Math.min(DEFAULT_BEAD_SIZE, size)));
+      const h = el.clientHeight;
+      const size = Math.floor(
+        Math.min((w - 16) / (cols + 0.8), (h - 16) / (rows + 0.8))
+      );
+      setBeadSize(Math.max(MIN_BEAD_SIZE, size));
     };
     compute();
     const ro = new ResizeObserver(compute);
@@ -196,8 +199,8 @@ export default function App() {
           </FileToolbar>
         </div>
 
-        <main id="main" className="flex flex-1 items-center justify-center min-h-0 pb-20 md:pb-6">
-          <div ref={measureRef} className="w-full h-full flex justify-center items-center min-h-0">
+        <main id="main" className="flex-1 min-h-0 pb-20 md:pb-15 grid items-stretch">
+          <div ref={measureRef} className="w-full h-full flex justify-center items-center min-h-full max-h-full">
             {mode === "2d" && (
               <div
                 ref={boardRef}
@@ -218,7 +221,7 @@ export default function App() {
                 style={{
                   cursor: isMobile ? "auto" : "none",
                 }}
-                className="w-full h-full md:h-[600px] md:max-w-[1100px] rounded-xl overflow-hidden border border-amber-200/60 shadow-lg bg-[#f7eed8]"
+                className="w-full h-full md:h-[600px] md:max-w-[1216px] rounded-xl overflow-hidden border border-amber-200/60 shadow-lg bg-[#f7eed8]"
               >
                 <PindouCanvas
                   dpr={isMobile ? [1, 1.5] : [1, 1.75]}
@@ -233,18 +236,6 @@ export default function App() {
             )}
           </div>
         </main>
-
-        <footer className="hidden md:block text-center text-xs text-stone-400 space-y-1 shrink-0">
-          <p>
-            2D 拼豆画：按住鼠标拖动连续绘制 · 右键唤出调色板快速换色 · hover 预览当前颜色
-          </p>
-          <p>
-            3D 拟物拼豆：左侧容器取豆入栈 · peg 上放下/拾取 · 右侧托盘右键扔下/左键拾取 · 长按连续
-          </p>
-          <p className="pt-2 text-stone-400">
-            拼豆 Pindou — 免费在线拼豆 / 像素画制作工具（Perler beads · fuse beads · pixel art maker）
-          </p>
-        </footer>
       </div>
 
       {/* 画板下方：编辑 + 历史/重置 + 静音（门店弹窗打开时隐藏） */}
