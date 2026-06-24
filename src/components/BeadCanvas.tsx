@@ -117,6 +117,7 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
 
     // ------- 可视层合成（底图 + hover 预览） -------
     const compositeRef = useRef<() => void>(() => {});
+    const lastSizeRef = useRef({ w: 0, h: 0, dpr: 1 });
 
     const composite = useCallback(() => {
       const canvas = canvasRef.current;
@@ -128,13 +129,23 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const cssW = cols * beadSize;
       const cssH = rows * beadSize;
-      canvas.width = Math.round(cssW * dpr);
-      canvas.height = Math.round(cssH * dpr);
-      canvas.style.width = `${cssW}px`;
-      canvas.style.height = `${cssH}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
+      const w = Math.round(cssW * dpr);
+      const h = Math.round(cssH * dpr);
+      // 只在尺寸变化时重设（避免每帧 surface 重建）
+      if (
+        lastSizeRef.current.w !== w ||
+        lastSizeRef.current.h !== h ||
+        lastSizeRef.current.dpr !== dpr
+      ) {
+        canvas.width = w;
+        canvas.height = h;
+        canvas.style.width = `${cssW}px`;
+        canvas.style.height = `${cssH}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        lastSizeRef.current = { w, h, dpr };
+      }
       ctx.clearRect(0, 0, cssW, cssH);
       ctx.drawImage(base, 0, 0, cssW, cssH);
 
@@ -157,6 +168,16 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
     }, [cols, rows, beadSize, currentColorId, exporting]);
 
     const scheduleComposite = useCallback(() => {
+      // 拖动期同步 composite，去掉 1 帧延迟
+      if (isDraggingRef.current) {
+        if (rafRef.current != null) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+        compositeRef.current();
+        return;
+      }
+      // 非拖动维持 rAF（hover/空闲预览省 CPU）
       if (rafRef.current != null) return;
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
@@ -222,6 +243,8 @@ export const BeadCanvas = forwardRef<BeadCanvasHandle, BeadCanvasProps>(
           hoverIdxRef.current = idx;
           moveStartTsRef.current = performance.now();
           onCellEnter?.(idx);
+          // 立即 composite，确保 hover 与涂色同帧可见（覆盖 scheduleComposite 的 rAF 路径）
+          compositeRef.current();
           scheduleComposite();
         }
       };

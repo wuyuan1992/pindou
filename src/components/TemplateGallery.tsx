@@ -114,7 +114,7 @@ export function TemplateGallery() {
           title="模板"
           aria-label="模板"
           aria-expanded={open}
-          className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
+          className={`w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-lg transition-all ${
             open
               ? "bg-amber-500 text-white shadow-md scale-105"
               : "text-stone-600 hover:bg-amber-100"

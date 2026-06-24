@@ -7,15 +7,7 @@ import {
 } from "lucide-react";
 import { useBeadStore } from "../store/useBeadStore.ts";
 import { useClickOutside } from "../hooks/useClickOutside.ts";
-
-const btnBase =
-  "w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg transition-all shrink-0";
-const btnIdle = "text-stone-600 hover:bg-amber-100";
-const btnActive = "bg-amber-500 text-white shadow-md scale-105";
-const btnDisabled = "opacity-30 hover:bg-transparent";
-
-const cardClass =
-  "flex items-center gap-0.5 md:gap-1 bg-white/95 rounded-xl p-1.5 shadow-sm border border-amber-100 flex-nowrap shrink-0";
+import { btnBase, btnIdle, btnActive, btnDisabled, cardClass } from "./Hotbar.tsx";
 
 // 画板上方左：2D/3D 切换
 export function ViewModeTab({
@@ -36,7 +28,7 @@ export function ViewModeTab({
           role="tab"
           aria-selected={mode === m}
           onClick={() => onModeChange(m)}
-          className={`px-4 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-colors ${
+          className={`h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm font-medium rounded-lg transition-colors inline-flex items-center justify-center ${
             mode === m ? "bg-amber-500 text-white shadow" : "text-stone-600 hover:text-amber-700"
           }`}
         >
@@ -118,7 +110,7 @@ export function FileToolbar({
               disabled={exportingFlat}
               className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-amber-100 transition-colors text-left disabled:opacity-50"
             >
-              <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                 <Grid3x3 size={18} strokeWidth={2.2} />
               </div>
               <div className="min-w-0">
@@ -135,7 +127,7 @@ export function FileToolbar({
               disabled={exporting}
               className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-amber-100 transition-colors text-left disabled:opacity-50"
             >
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm">
                 <Box size={18} strokeWidth={2.2} />
               </div>
               <div className="min-w-0">

@@ -16,10 +16,94 @@ interface PindouCanvasProps {
   onErase?: BoardProps["onErase"];
 }
 
-const DEFAULT_CAM_POS = new THREE.Vector3(0, 27, 10.5);
+const DEFAULT_CAM_POS = new THREE.Vector3(0, 22, 3);
 const DEFAULT_CAM_LOOK = new THREE.Vector3(0, 0, 0);
 const PREVIEW_CAM_HEIGHT = 22;
 const PREVIEW_BOARD_LIFT = 2;
+
+const SCALE_MIN = 0.4;
+const SCALE_MAX = 2.5;
+const SCALE_WHEEL_STEP = 0.08;
+
+function clampScale(v: number): number {
+  return THREE.MathUtils.clamp(v, SCALE_MIN, SCALE_MAX);
+}
+
+function BoardZoomRig() {
+  const gl = useThree((s) => s.gl);
+
+  useEffect(() => {
+    const el = gl.domElement;
+
+    const applyScale = (next: number) => {
+      const ls = useLayoutStore.getState();
+      const cur = ls.transforms.board.scale;
+      const clamped = clampScale(next);
+      if (clamped !== cur) {
+        ls.setTransform("board", { scale: clamped });
+      }
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const ls = useLayoutStore.getState();
+      const cur = ls.transforms.board.scale;
+      const dir = e.deltaY < 0 ? 1 : -1;
+      applyScale(cur + dir * SCALE_WHEEL_STEP);
+    };
+
+    let pinchStartDist = 0;
+    let pinchStartScale = 1;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        pinchStartDist = touchDist(e);
+        pinchStartScale = useLayoutStore.getState().transforms.board.scale;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || pinchStartDist === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const dist = touchDist(e);
+      if (dist <= 0) return;
+      const ratio = dist / pinchStartDist;
+      applyScale(pinchStartScale * ratio);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        pinchStartDist = 0;
+      }
+    };
+
+    el.addEventListener("wheel", onWheel, { capture: true, passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    el.addEventListener("touchcancel", onTouchEnd);
+    return () => {
+      el.removeEventListener("wheel", onWheel, { capture: true } as AddEventListenerOptions);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [gl]);
+
+  return null;
+}
+
+function touchDist(e: TouchEvent): number {
+  const a = e.touches[0];
+  const b = e.touches[1];
+  if (!a || !b) return 0;
+  const dx = a.clientX - b.clientX;
+  const dy = a.clientY - b.clientY;
+  return Math.hypot(dx, dy);
+}
 
 function CameraRig() {
   const camera = useThree((s) => s.camera);
@@ -77,12 +161,13 @@ export function PindouCanvas({
     >
       <Canvas
         shadows
-        camera={{ position: [0, 27, 10.5], fov: 42, near: 0.1, far: 200 }}
+        camera={{ position: [0, 22, 3], fov: 42, near: 0.1, far: 200 }}
         gl={{ preserveDrawingBuffer: true, antialias: true, alpha: true }}
         dpr={dpr}
         style={{ width: "100%", height: "100%" }}
       >
         <CameraRig />
+        <BoardZoomRig />
         <MouseTracker />
 
         <ambientLight intensity={0.6} />

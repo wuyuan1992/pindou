@@ -14,7 +14,6 @@ const MOBILE_Y_OFFSET = 1.2;
 
 export function FloatingBead() {
   const currentColorId = useBeadStore((s) => s.currentColorId);
-  const mode = useBeadStore((s) => s.mode);
   const isMobile = useIsMobile();
 
   const groupRef = useRef<Group>(null);
@@ -24,7 +23,7 @@ export function FloatingBead() {
     [currentColorId]
   );
 
-  useFrame(() => {
+  useFrame((state) => {
     const group = groupRef.current;
     if (!group) return;
 
@@ -51,10 +50,18 @@ export function FloatingBead() {
 
     group.position.set(baseX, baseY, baseZ);
     group.rotation.y = boardTransform.rotationY;
-  });
 
-  const isErasing = mode === "erasing";
-  const ghostOpacity = isErasing ? 0.0 : 0.55;
+    const isErasing = useBeadStore.getState().mode === "erasing";
+    const t = state.clock.elapsedTime;
+    const pulse = 0.35 + 0.3 * (0.5 + 0.5 * Math.sin(t * (Math.PI * 2 / 1.4)));
+    material.transparent = true;
+    material.depthWrite = false;
+    material.opacity = isErasing ? pulse * 0.9 : pulse;
+    material.needsUpdate = true;
+    if (material.emissive) {
+      material.emissive.set(isErasing ? "#ff3322" : "#000000");
+    }
+  });
 
   return (
     <group ref={groupRef} visible={false}>
@@ -65,14 +72,6 @@ export function FloatingBead() {
         castShadow
         renderOrder={2}
       />
-      <mesh visible={isErasing}>
-        <sphereGeometry args={[0.16, 16, 16]} />
-        <meshBasicMaterial color="#ff4444" transparent opacity={0.7} />
-      </mesh>
-      <mesh visible={!isErasing}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={ghostOpacity} />
-      </mesh>
     </group>
   );
 }

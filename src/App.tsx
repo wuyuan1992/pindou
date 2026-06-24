@@ -190,6 +190,7 @@ export default function App() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <StoreLocation />
             <button
               onClick={() => setOnboardingOpen(true)}
               aria-label="打开使用引导"
@@ -198,7 +199,6 @@ export default function App() {
             >
               <HelpCircle size={20} strokeWidth={2.2} />
             </button>
-            <StoreLocation />
           </div>
         </header>
 
@@ -216,16 +216,9 @@ export default function App() {
             mode === "3d" ? "max-md:pb-24" : ""
           }`}
         >
-          {/* toolbar 行:3D 模式下悬浮在透明全屏 Canvas 之上(absolute + backdrop-blur + z-10),
-              定位上下文为本 main 元素(不含 Header)。
+          {/* toolbar 行:2D/3D 统一,流式布局占据顶部空间。
               Hotbar 在移动端单独 fixed 到底,桌面端留在行内。 */}
-          <div
-            className={`flex items-center gap-2 mb-2 md:mb-3 pt-2 md:pt-0 shrink-0 ${
-              mode === "3d"
-                ? "absolute top-0 left-0 right-0 z-10 mx-2 md:mx-8 px-2 md:px-0 pt-3 md:pt-6 pb-2 md:pb-2 bg-white/70 backdrop-blur-md rounded-b-xl"
-                : "bg-transparent"
-            }`}
-          >
+          <div className="flex items-center gap-2 mb-2 md:mb-3 pt-2 md:pt-0 shrink-0">
             <ViewModeTab mode={mode} onModeChange={setMode} />
             <div className="hidden md:flex flex-1 min-w-0 justify-center">
               <Hotbar
@@ -234,16 +227,18 @@ export default function App() {
                 onToggleMute={() => setMuted((m) => !m)}
               />
             </div>
-            <FileToolbar
-              onExport={handleExport}
-              onExportFlat={handleExportFlat}
-              onImportImage={handleImportImage}
-              exporting={exporting}
-              exportingFlat={exportingFlat}
-              importing={importing}
-            >
-              <TemplateGallery />
-            </FileToolbar>
+            <div className="ml-auto">
+              <FileToolbar
+                onExport={handleExport}
+                onExportFlat={handleExportFlat}
+                onImportImage={handleImportImage}
+                exporting={exporting}
+                exportingFlat={exportingFlat}
+                importing={importing}
+              >
+                <TemplateGallery />
+              </FileToolbar>
+            </div>
           </div>
 
           {/* Hotbar:移动端单独 fixed 到底部,桌面端在上方 toolbar 行内(此处不渲染) */}
@@ -279,7 +274,7 @@ export default function App() {
                 style={{
                   cursor: isMobile ? "auto" : "none",
                 }}
-                className="absolute inset-0 w-full h-full"
+                className="absolute inset-x-0 bottom-0 top-[64px] md:top-[72px] w-full h-full"
               >
                 <PindouCanvas
                   dpr={isMobile ? [1, 1.5] : [1, 1.75]}

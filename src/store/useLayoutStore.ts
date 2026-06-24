@@ -5,12 +5,13 @@ export type ItemType = "palette" | "board" | "tray";
 export interface ItemTransform {
   position: [number, number, number];
   rotationY: number;
+  scale: number;
 }
 
 export const DEFAULT_TRANSFORMS: Record<ItemType, ItemTransform> = {
-  palette: { position: [-6, 0, 3.5], rotationY: 0 },
-  board: { position: [4, 0, 0], rotationY: 0 },
-  tray: { position: [-6, 0, -3.5], rotationY: 0 },
+  palette: { position: [-6, 0, 3.5], rotationY: 0, scale: 1 },
+  board: { position: [0, 0, 0], rotationY: 0, scale: 1 },
+  tray: { position: [-6, 0, -3.5], rotationY: 0, scale: 1 },
 };
 
 interface LayoutState {

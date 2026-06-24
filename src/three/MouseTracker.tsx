@@ -37,7 +37,7 @@ export function MouseTracker() {
       raycaster.setFromCamera(ndc, camera);
       const hit = raycaster.ray.intersectPlane(plane, target);
       if (!hit) {
-        useGrabStore.getState().setDragPos(null);
+        // 保留 dragPos：让 FloatingBead 停在离开时的位置，鼠标回来无缝接续
         useGrabStore.getState().setHoveredIdx(null);
       } else {
         useGrabStore.getState().setDragPos([hit.x, hit.y, hit.z]);
@@ -77,7 +77,8 @@ export function MouseTracker() {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
-      useGrabStore.getState().setDragPos(null);
+      // 保留 dragPos：让 FloatingBead 停在离开时的位置，鼠标回来无缝接续
+      // 避免清空导致的视觉跳跃（被误认为"重置到画板附近"）
       useGrabStore.getState().setHoveredIdx(null);
     };
 

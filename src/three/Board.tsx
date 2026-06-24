@@ -32,14 +32,14 @@ interface BoardProps {
 // 但用户点击时视觉对齐的是 peg 顶部圆面。两者 x/z 一致(peg 是竖直的),
 // 取顶部高度是为了让 ray-plane 求得的交点 x/z 与「视觉 peg 中心」一致。
 const PEG_TOP_Y = BOARD_TOP_Y + PEG_HEIGHT;
-const pegTopPlane = new THREE.Plane(
-  new THREE.Vector3(0, 1, 0),
-  -PEG_TOP_Y
-);
+const pegTopPlaneNormal = new THREE.Vector3(0, 1, 0);
+const pegTopPlane = new THREE.Plane(pegTopPlaneNormal, -PEG_TOP_Y);
 const hitOnPegTop = new THREE.Vector3();
 
 function rayToIdx(ray: THREE.Ray): number | null {
   const bt = useLayoutStore.getState().transforms.board;
+  const scaledTopY = PEG_TOP_Y * bt.scale + bt.position[1];
+  pegTopPlane.constant = -scaledTopY;
   const hit = ray.intersectPlane(pegTopPlane, hitOnPegTop);
   if (!hit) return null;
   const [lx, lz] = worldToLocal(bt, hit.x, hit.z);
@@ -401,6 +401,7 @@ export function BoardCluster({ onPlace, onPick, onErase }: BoardClusterProps) {
         group.position.set(bt.position[0], bt.position[1], bt.position[2]);
         group.rotation.x = 0;
         group.rotation.z = 0;
+        group.scale.setScalar(bt.scale);
       }
       return;
     }
@@ -409,6 +410,7 @@ export function BoardCluster({ onPlace, onPick, onErase }: BoardClusterProps) {
       group.position.set(bt.position[0], bt.position[1] + lift.current, bt.position[2]);
       group.rotation.x = tilt.current.x;
       group.rotation.z = tilt.current.z;
+      group.scale.setScalar(bt.scale);
     }
   });
 
@@ -417,6 +419,7 @@ export function BoardCluster({ onPlace, onPick, onErase }: BoardClusterProps) {
       ref={groupRef}
       position={boardTransform.position}
       rotation={[0, boardTransform.rotationY, 0]}
+      scale={boardTransform.scale}
     >
       <Board onPlace={onPlace} onPick={onPick} onErase={onErase} />
       <Beads />

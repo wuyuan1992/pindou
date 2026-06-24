@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { MapPin, Navigation, Clock, X, Sparkles, Phone, ExternalLink, Copy, Check } from "lucide-react";
 import AMapLoader from "@amap/amap-jsapi-loader";
@@ -113,16 +114,18 @@ export function StoreLocation({ onOpenChange }: { onOpenChange?: (open: boolean)
         <span className="sm:hidden">门店</span>
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="fixed inset-0 z-[200] flex items-center justify-center p-3 md:p-6 bg-black/40 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            onClick={() => updateOpen(false)}
-          >
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                className="fixed inset-0 z-[200] flex items-center justify-center p-3 md:p-6 bg-black/40 backdrop-blur-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                onClick={() => updateOpen(false)}
+              >
             <motion.div
               data-ui
               onClick={(e) => e.stopPropagation()}
@@ -136,7 +139,7 @@ export function StoreLocation({ onOpenChange }: { onOpenChange?: (open: boolean)
                 type="button"
                 onClick={() => updateOpen(false)}
                 aria-label="关闭"
-                className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-rose-100 text-stone-500 hover:text-rose-600 flex items-center justify-center shadow-sm border border-rose-100 transition-colors"
+                className="absolute top-3 right-3 z-10 w-5 h-5 rounded-full bg-white/90 hover:bg-rose-100 text-stone-500 hover:text-rose-600 flex items-center justify-center shadow-sm border border-rose-100 transition-colors"
               >
                 <X size={16} strokeWidth={2.6} />
               </button>
@@ -200,8 +203,18 @@ export function StoreLocation({ onOpenChange }: { onOpenChange?: (open: boolean)
 
                   <a
                     href={navUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      const ua = navigator.userAgent.toLowerCase();
+                      // 微信/QQ 内置浏览器拦截 callnative，引导用户在外部浏览器打开
+                      if (/micromessenger|qq\//.test(ua)) {
+                        e.preventDefault();
+                        alert("请在右上角「···」中选择「在浏览器打开」以唤起高德地图");
+                        return;
+                      }
+                      // 普通移动端浏览器：同窗口跳转触发 callnative 调起 app
+                      e.preventDefault();
+                      window.location.href = navUrl;
+                    }}
                     className="mt-2 w-full inline-flex items-center justify-center gap-2 h-11 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
                   >
                     <Navigation size={16} strokeWidth={2.6} />
@@ -232,7 +245,9 @@ export function StoreLocation({ onOpenChange }: { onOpenChange?: (open: boolean)
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+          document.body
+        )}
     </>
   );
 }
@@ -447,15 +462,23 @@ function FallbackCover({
 }) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-5 text-center bg-gradient-to-br from-rose-50 to-amber-50">
-      <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+      <div className="w-6 h-6 rounded-2xl bg-white shadow-sm flex items-center justify-center">
         <MapPin size={18} strokeWidth={2.4} className="text-rose-400" />
       </div>
       <p className="text-xs font-semibold text-stone-700">{title}</p>
       <p className="text-[10px] text-stone-500 leading-relaxed max-w-[200px]">{desc}</p>
       <a
         href={href}
-        target="_blank"
-        rel="noopener noreferrer"
+        onClick={(e) => {
+          const ua = navigator.userAgent.toLowerCase();
+          if (/micromessenger|qq\//.test(ua)) {
+            e.preventDefault();
+            alert("请在右上角「···」中选择「在浏览器打开」以唤起高德地图");
+            return;
+          }
+          e.preventDefault();
+          window.location.href = href;
+        }}
         className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 font-medium hover:underline"
       >
         {cta}

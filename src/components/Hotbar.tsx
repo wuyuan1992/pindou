@@ -7,14 +7,14 @@ import { QuickPalette } from "./QuickPalette.tsx";
 import { Modal } from "./Modal.tsx";
 import { getColor } from "../data/colors.ts";
 
-const btnBase =
-  "w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-lg transition-all shrink-0";
-const btnIdle = "text-stone-600 hover:bg-amber-100";
-const btnActive = "bg-amber-500 text-white shadow-md scale-105";
-const btnDisabled = "opacity-30 hover:bg-transparent";
+export const btnBase =
+  "w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-lg transition-all shrink-0 active:scale-95";
+export const btnIdle = "text-stone-600 hover:bg-amber-100";
+export const btnActive = "bg-amber-500 text-white shadow-md scale-105";
+export const btnDisabled = "opacity-30 hover:bg-transparent";
 
-const cardClass =
-  "flex items-center gap-0.5 md:gap-1 bg-white/95 rounded-xl p-1.5 shadow-sm border border-amber-100 flex-nowrap";
+export const cardClass =
+  "flex items-center gap-0.5 md:gap-1 bg-white/95 rounded-xl p-1 md:p-1.5 shadow-sm border border-amber-100 flex-nowrap";
 
 function Divider() {
   return <div className="w-px h-5 md:h-6 bg-amber-200 mx-0.5 md:mx-1 shrink-0" />;
@@ -93,14 +93,14 @@ export function Hotbar({
         data-ui
         data-onboarding="hotbar"
         onWheel={onWheel}
-        className={`${cardClass} overflow-hidden max-w-full`}
+        className={`${cardClass} overflow-x-auto max-w-full`}
       >
         <button
           ref={chipRef}
           onClick={openPalette}
           title="选择颜色"
           aria-label="选择颜色"
-          className="group relative w-9 h-9 md:w-10 md:h-10 rounded-full transition-transform hover:scale-105 shrink-0 rainbow-chip flex items-center justify-center"
+          className="group relative w-8 h-8 md:w-9 md:h-9 rounded-full transition-transform hover:scale-105 shrink-0 rainbow-chip flex items-center justify-center"
           style={{
             background:
               "conic-gradient(from 0deg, #ff3b3b, #ffd93b, #6bcb77, #4d96ff, #9b5de5, #ff5da2, #ff3b3b)",
@@ -119,7 +119,7 @@ export function Hotbar({
               disabled={!colorId}
               title={colorId ? getColor(colorId).name : "空"}
               aria-label={colorId ? `选择第 ${i + 1} 个最近色` : "空槽位"}
-              className={`w-6 h-6 md:w-7 md:h-7 rounded-full transition-transform ${
+              className={`w-5 h-5 md:w-6 md:h-6 rounded-full transition-transform ${
                 colorId ? "hover:scale-110" : "opacity-20 cursor-default"
               }`}
               style={colorId ? swatchStyle(getColor(colorId).base, colorId === currentColorId) : { background: "#e7e5e4" }}
